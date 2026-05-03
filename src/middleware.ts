@@ -1,10 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { jwtSigningKey } from "@/lib/jwt-secret";
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET ?? "");
 const COOKIE = process.env.SESSION_COOKIE_NAME || "nboog_session";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/health"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/api/auth/login",
+  "/api/auth/logout",
+  "/api/health",
+];
 
 function isPublic(pathname: string): boolean {
   return (
@@ -15,10 +20,11 @@ function isPublic(pathname: string): boolean {
   );
 }
 
-async function isAuthenticated(token: string | undefined): Promise<boolean> {
+async function tokenValid(token: string | undefined): Promise<boolean> {
   if (!token) return false;
   try {
-    await jwtVerify(token, SECRET, {
+    const key = await jwtSigningKey();
+    await jwtVerify(token, key, {
       issuer: "nboog-sacco",
       audience: "nboog-sacco-app",
       algorithms: ["HS256"],
@@ -35,14 +41,11 @@ export async function middleware(req: NextRequest) {
   if (isPublic(pathname)) return NextResponse.next();
 
   const token = req.cookies.get(COOKIE)?.value;
-  const authed = await isAuthenticated(token);
+  const ok = await tokenValid(token);
 
-  if (!authed) {
+  if (!ok) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = "/login";

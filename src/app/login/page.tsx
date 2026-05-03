@@ -49,8 +49,10 @@ function LoginInner() {
       // Guard against non-JSON responses (e.g. 500 HTML error pages)
       const contentType = res.headers.get("content-type") ?? "";
       if (!contentType.includes("application/json")) {
-        setErrors({ form: `Server error (${res.status}). Check environment variables and database connection.` });
-        toast.error("Server error — see console for details");
+        setErrors({
+          form: `Something went wrong (${res.status}). If this persists, check DATABASE_URL on Vercel.`,
+        });
+        toast.error("Server error");
         return;
       }
 

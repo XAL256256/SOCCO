@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { AuditStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/crypto";
-import { createSession, getRequestContext } from "@/lib/auth";
+import { issueAuthCookie, getRequestContext } from "@/lib/auth";
 import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { audit, AUDIT_ACTIONS } from "@/lib/audit";
-import { handleApiError } from "@/lib/api";
-import { loginSchema } from "@/lib/validators";
-import { AuditStatus } from "@prisma/client";
 
-const MAX_FAILED_LOGINS = 5;
-const LOCKOUT_MINUTES = 15;
+const bodySchema = z.object({
+  identifier: z.string().min(1).max(200),
+  password: z.string().min(1).max(200),
+});
+
+const MAX_FAILED = 5;
+const LOCKOUT_MS = 15 * 60_000;
 
 export async function POST(req: NextRequest) {
-  try {
   const { ip, userAgent } = await getRequestContext();
   const ipKey = ip ?? "unknown";
 
@@ -21,7 +24,7 @@ export async function POST(req: NextRequest) {
     ...RATE_LIMITS.login,
   });
   if (!rl.success) {
-    await audit({
+    void audit({
       action: AUDIT_ACTIONS.RATE_LIMITED,
       resource: "Auth",
       ipAddress: ip,
@@ -30,69 +33,91 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(
       { error: "Too many attempts. Please wait a moment." },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } }
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) },
+      }
     );
   }
 
-  let body: unknown;
+  let json: unknown;
   try {
-    body = await req.json();
+    json = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const parsed = loginSchema.safeParse(body);
+  const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
   const { identifier, password } = parsed.data;
-  const isEmail = identifier.includes("@");
+  const lower = identifier.trim().toLowerCase();
+  const isEmail = lower.includes("@");
 
-  const user = await prisma.user.findFirst({
-    where: isEmail
-      ? { email: identifier.toLowerCase() }
-      : { username: identifier.toLowerCase() },
-  });
+  try {
+    await prisma.$connect();
+  } catch (e) {
+    console.error("[login] database unreachable", e);
+    return NextResponse.json(
+      {
+        error:
+          "Cannot reach database. Add DATABASE_URL in Vercel and run db push + seed.",
+      },
+      { status: 503 }
+    );
+  }
 
-  // Generic error to avoid user enumeration. Always return identical timing.
-  const generic = NextResponse.json(
-    { error: "Invalid credentials" },
+  const generic401 = NextResponse.json(
+    { error: "Invalid username or password" },
     { status: 401 }
   );
 
+  let user;
+  try {
+    user = await prisma.user.findFirst({
+      where: isEmail ? { email: lower } : { username: lower },
+    });
+  } catch (e) {
+    console.error("[login] query failed", e);
+    return NextResponse.json(
+      { error: "Database error during login" },
+      { status: 503 }
+    );
+  }
+
   if (!user) {
-    // Burn time to keep timing closer to the success path.
-    await verifyPassword(password, "$2a$12$invalidsaltinvalidsaltinvalidsaltinvalidsa");
-    await audit({
+    await verifyPassword(
+      password,
+      "$2a$12$invalidsaltinvalidsaltinvalidsaltinvalidsa"
+    );
+    void audit({
       action: AUDIT_ACTIONS.LOGIN_FAILED,
       resource: "Auth",
-      metadata: { identifier },
+      metadata: { identifier: lower },
       ipAddress: ip,
       userAgent,
       status: AuditStatus.FAILURE,
     });
-    return generic;
+    return generic401;
   }
 
   if (!user.isActive) {
-    await audit({
+    void audit({
       userId: user.id,
       action: AUDIT_ACTIONS.LOGIN_FAILED,
       resource: "Auth",
-      metadata: { reason: "account_disabled" },
+      metadata: { reason: "inactive" },
       ipAddress: ip,
       userAgent,
       status: AuditStatus.FAILURE,
     });
-    return generic;
+    return generic401;
   }
 
   if (user.lockedUntil && user.lockedUntil > new Date()) {
-    await audit({
+    void audit({
       userId: user.id,
       action: AUDIT_ACTIONS.LOGIN_LOCKED,
       resource: "Auth",
@@ -103,49 +128,53 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Account temporarily locked due to too many failed attempts. Try again later.",
+          "Account temporarily locked after failed attempts. Try again later.",
       },
       { status: 423 }
     );
   }
 
-  const ok = await verifyPassword(password, user.passwordHash);
-  if (!ok) {
-    const failedLogins = user.failedLogins + 1;
-    const shouldLock = failedLogins >= MAX_FAILED_LOGINS;
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        failedLogins,
-        lockedUntil: shouldLock
-          ? new Date(Date.now() + LOCKOUT_MINUTES * 60_000)
-          : null,
-      },
-    });
-    await audit({
+  const passwordOk = await verifyPassword(password, user.passwordHash);
+  if (!passwordOk) {
+    const failed = user.failedLogins + 1;
+    const lock = failed >= MAX_FAILED;
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLogins: failed,
+          lockedUntil: lock ? new Date(Date.now() + LOCKOUT_MS) : null,
+        },
+      });
+    } catch (e) {
+      console.error("[login] failed-login counter update", e);
+    }
+    void audit({
       userId: user.id,
-      action: shouldLock
-        ? AUDIT_ACTIONS.LOGIN_LOCKED
-        : AUDIT_ACTIONS.LOGIN_FAILED,
+      action: lock ? AUDIT_ACTIONS.LOGIN_LOCKED : AUDIT_ACTIONS.LOGIN_FAILED,
       resource: "Auth",
       ipAddress: ip,
       userAgent,
       status: AuditStatus.FAILURE,
     });
-    return generic;
+    return generic401;
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      failedLogins: 0,
-      lockedUntil: null,
-      lastLoginAt: new Date(),
-      lastLoginIp: ip ?? null,
-    },
-  });
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLogins: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date(),
+        lastLoginIp: ip ?? null,
+      },
+    });
+  } catch (e) {
+    console.error("[login] user update after success", e);
+  }
 
-  await createSession({
+  await issueAuthCookie({
     userId: user.id,
     role: user.role,
     username: user.username,
@@ -153,7 +182,7 @@ export async function POST(req: NextRequest) {
     ipAddress: ip,
   });
 
-  await audit({
+  void audit({
     userId: user.id,
     action: AUDIT_ACTIONS.LOGIN_SUCCESS,
     resource: "Auth",
@@ -170,7 +199,4 @@ export async function POST(req: NextRequest) {
       role: user.role,
     },
   });
-  } catch (err) {
-    return handleApiError(err);
-  }
 }
