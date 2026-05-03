@@ -1,0 +1,410 @@
+// NBOOG SACCO database schema
+// Designed for security, auditability, and financial integrity.
+
+generator client {
+  provider      = "prisma-client-js"
+  // "native" for local dev; "rhel-openssl-3.0.x" for Vercel (Amazon Linux 2023)
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Needed for Neon / Supabase connection pooling
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// USERS - Staff accounts (Treasurer, Secretary, Chairperson, Admin)
+// ============================================================
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  username        String    @unique
+  fullName        String
+  passwordHash    String
+  role            Role      @default(SECRETARY)
+  phoneNumber     String?
+  isActive        Boolean   @default(true)
+  failedLogins    Int       @default(0)
+  lockedUntil     DateTime?
+  lastLoginAt     DateTime?
+  lastLoginIp     String?
+  passwordChangedAt DateTime @default(now())
+  twoFactorSecret String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  contributionsLogged Contribution[] @relation("LoggedBy")
+  receiptsIssued      Receipt[]      @relation("IssuedBy")
+  meetingsCreated     Meeting[]      @relation("CreatedBy")
+  auditLogs           AuditLog[]
+  sessions            Session[]
+
+  @@index([email])
+  @@index([username])
+}
+
+enum Role {
+  ADMIN
+  CHAIRPERSON
+  TREASURER
+  SECRETARY
+  AUDITOR
+}
+
+// ============================================================
+// SESSIONS - For revocable JWT/session tracking
+// ============================================================
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique
+  userAgent   String?
+  ipAddress   String?
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ============================================================
+// MEMBERS - SACCO members
+// ============================================================
+model Member {
+  id           String   @id @default(cuid())
+  memberNumber String   @unique // e.g. NBG-0001
+  firstName    String
+  lastName     String
+  nationalId   String?  @unique
+  phoneNumber  String   @unique
+  email        String?  @unique
+  dateOfBirth  DateTime?
+  gender       Gender?
+  occupation   String?
+  address      String?
+  nextOfKin    String?
+  nextOfKinPhone String?
+  joinedAt     DateTime @default(now())
+  status       MemberStatus @default(ACTIVE)
+  photoUrl     String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  contributions Contribution[]
+  receipts      Receipt[]
+  attendance    Attendance[]
+  loans         Loan[]
+  fines         Fine[]
+
+  @@index([memberNumber])
+  @@index([phoneNumber])
+  @@index([status])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  EXITED
+}
+
+// ============================================================
+// MEETINGS - Each weekly/monthly gathering
+// ============================================================
+model Meeting {
+  id          String        @id @default(cuid())
+  title       String
+  meetingDate DateTime
+  location    String?
+  agenda      String?
+  minutes     String?
+  status      MeetingStatus @default(SCHEDULED)
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  createdBy     User           @relation("CreatedBy", fields: [createdById], references: [id])
+  attendance    Attendance[]
+  contributions Contribution[]
+
+  @@index([meetingDate])
+  @@index([status])
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================
+// ATTENDANCE - Who showed up
+// ============================================================
+model Attendance {
+  id        String           @id @default(cuid())
+  meetingId String
+  memberId  String
+  status    AttendanceStatus @default(PRESENT)
+  checkedInAt DateTime       @default(now())
+  notes     String?
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, memberId])
+  @@index([meetingId])
+  @@index([memberId])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+// ============================================================
+// CONTRIBUTIONS - Money received per member per meeting
+// ============================================================
+model Contribution {
+  id              String   @id @default(cuid())
+  memberId        String
+  meetingId       String?
+  welfareAmount   Int      @default(0) // Amounts in UGX (integer cents-equivalent)
+  savingsAmount   Int      @default(0)
+  loanRepayment   Int      @default(0)
+  fineAmount      Int      @default(0)
+  shareAmount     Int      @default(0)
+  registrationFee Int      @default(0)
+  otherAmount     Int      @default(0)
+  otherDescription String?
+  totalAmount     Int      // Computed at write time
+  paymentMethod   PaymentMethod @default(CASH)
+  reference       String?  // Mobile money txn ID, etc.
+  loggedById      String
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  member   Member   @relation(fields: [memberId], references: [id])
+  meeting  Meeting? @relation(fields: [meetingId], references: [id])
+  loggedBy User     @relation("LoggedBy", fields: [loggedById], references: [id])
+  receipt  Receipt?
+
+  @@index([memberId])
+  @@index([meetingId])
+  @@index([createdAt])
+}
+
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY
+  BANK_TRANSFER
+  CHEQUE
+}
+
+// ============================================================
+// RECEIPTS - Issued for each contribution (immutable)
+// ============================================================
+model Receipt {
+  id             String   @id @default(cuid())
+  receiptNumber  String   @unique // e.g. RCT-20260410-001
+  contributionId String   @unique
+  memberId       String
+  totalAmount    Int
+  issuedById     String
+  issuedAt       DateTime @default(now())
+  printedCount   Int      @default(0)
+  whatsappSent   Boolean  @default(false)
+  whatsappSentAt DateTime?
+  version        Int      @default(1)
+  voided         Boolean  @default(false)
+  voidedAt       DateTime?
+  voidReason     String?
+  // Tamper-evidence: hash of receipt contents for audit trail
+  integrityHash  String
+
+  contribution Contribution @relation(fields: [contributionId], references: [id])
+  member       Member       @relation(fields: [memberId], references: [id])
+  issuedBy     User         @relation("IssuedBy", fields: [issuedById], references: [id])
+  versions     ReceiptVersion[]
+
+  @@index([receiptNumber])
+  @@index([memberId])
+  @@index([issuedAt])
+}
+
+// Immutable version history for receipts (per proposal: never overwrite silently)
+model ReceiptVersion {
+  id            String   @id @default(cuid())
+  receiptId     String
+  version       Int
+  snapshot      String   // JSON snapshot of receipt + contribution at this version
+  changedField  String?  // e.g. "savingsAmount"
+  oldValue      String?
+  newValue      String?
+  reason        String?
+  changedById   String
+  changedAt     DateTime @default(now())
+
+  receipt Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@index([receiptId])
+  @@index([changedAt])
+  @@unique([receiptId, version])
+}
+
+// ============================================================
+// LOANS - Member borrowing lifecycle (application → approval → schedule → repayment)
+// ============================================================
+model Loan {
+  id              String     @id @default(cuid())
+  loanNumber      String     @unique // e.g. NBG-LN-2026-001
+  memberId        String
+  principalAmount Int        // Approved amount (UGX)
+  requestedAmount Int        // What member asked for
+  interestRate    Float      @default(0.10) // 10% per period (per proposal example)
+  termMonths      Int
+  purpose         String?
+  guarantors      String?    // Comma-separated member numbers
+  amountRepaid    Int        @default(0)
+  status          LoanStatus @default(PENDING)
+  appliedAt       DateTime   @default(now())
+  approvedAt      DateTime?
+  approvedById    String?
+  rejectedReason  String?
+  disbursedAt     DateTime?
+  dueAt           DateTime?
+  closedAt        DateTime?
+  notes           String?
+
+  member Member @relation(fields: [memberId], references: [id])
+  schedule LoanInstallment[]
+
+  @@index([memberId])
+  @@index([status])
+  @@index([appliedAt])
+}
+
+enum LoanStatus {
+  PENDING       // Application submitted, awaiting approval
+  APPROVED      // Approved, awaiting disbursement
+  DISBURSED     // Money disbursed, repayment in progress
+  ACTIVE        // Same as DISBURSED (kept for clarity)
+  PAID          // Fully repaid
+  REJECTED      // Application rejected
+  DEFAULTED
+  WRITTEN_OFF
+}
+
+model LoanInstallment {
+  id          String   @id @default(cuid())
+  loanId      String
+  dueDate     DateTime
+  amount      Int      // Expected installment amount
+  paidAmount  Int      @default(0)
+  paidAt      DateTime?
+  status      InstallmentStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@index([dueDate])
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  OVERDUE
+  WAIVED
+}
+
+// ============================================================
+// FINES - Tracked separately so they can be waived & audited
+// ============================================================
+model Fine {
+  id           String     @id @default(cuid())
+  memberId     String
+  reason       FineReason
+  amount       Int
+  description  String?
+  attendanceId String?    @unique
+  contributionId String?
+  status       FineStatus @default(OUTSTANDING)
+  paidAt       DateTime?
+  waivedAt     DateTime?
+  waivedById   String?
+  waivedReason String?
+  createdAt    DateTime   @default(now())
+
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@index([memberId])
+  @@index([status])
+}
+
+enum FineReason {
+  LATENESS
+  ABSENCE
+  MISSED_CONTRIBUTION
+  OVERDUE_LOAN
+  OTHER
+}
+
+enum FineStatus {
+  OUTSTANDING
+  PAID
+  WAIVED
+}
+
+// ============================================================
+// AUDIT LOG - Tamper-evident trail of every sensitive action
+// ============================================================
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String   // CREATE_MEMBER, LOG_CONTRIBUTION, etc.
+  resource   String   // Member, Contribution, etc.
+  resourceId String?
+  metadata   String?  // JSON-encoded additional context
+  ipAddress  String?
+  userAgent  String?
+  status     AuditStatus @default(SUCCESS)
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+enum AuditStatus {
+  SUCCESS
+  FAILURE
+  WARNING
+}
+
+// ============================================================
+// SETTINGS - SACCO-wide configuration
+// ============================================================
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
