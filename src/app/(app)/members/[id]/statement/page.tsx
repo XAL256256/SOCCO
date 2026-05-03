@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
-import { endOfYear, format, startOfYear } from "date-fns";
+import { endOfYear, startOfYear } from "date-fns";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getAvailableReportYears } from "@/lib/reports";
-import { formatUGX } from "@/lib/utils";
+import { getMember } from "@/lib/mock/queries";
+import {
+  ATTENDANCE, CONTRIBUTIONS, FINES, LOAN_INSTALLMENTS,
+  LOANS, MEETINGS, RECEIPTS, TODAY,
+} from "@/lib/mock/data";
 import { StatementClient } from "./StatementClient";
 
 export const dynamic = "force-dynamic";
@@ -22,49 +25,29 @@ export default async function MemberStatementPage({
   const sp = await searchParams;
 
   const years = await getAvailableReportYears();
-  const year = Number(sp.year) || new Date().getFullYear();
+  const year = Number(sp.year) || TODAY.getFullYear();
   const yearStart = startOfYear(new Date(year, 0, 1));
   const yearEnd = endOfYear(new Date(year, 0, 1));
 
-  const member = await prisma.member.findUnique({
-    where: { id },
-    include: {
-      contributions: {
-        where: { createdAt: { gte: yearStart, lte: yearEnd } },
-        orderBy: { createdAt: "asc" },
-        include: {
-          receipt: {
-            select: {
-              id: true,
-              receiptNumber: true,
-              totalAmount: true,
-              integrityHash: true,
-              version: true,
-              issuedAt: true,
-            },
-          },
-          meeting: { select: { title: true, meetingDate: true } },
-        },
-      },
-      loans: {
-        orderBy: { appliedAt: "desc" },
-        include: { schedule: { orderBy: { dueDate: "asc" } } },
-      },
-      attendance: {
-        where: { checkedInAt: { gte: yearStart, lte: yearEnd } },
-        orderBy: { checkedInAt: "asc" },
-        include: { meeting: { select: { title: true, meetingDate: true } } },
-      },
-      fines: {
-        where: { createdAt: { gte: yearStart, lte: yearEnd } },
-        orderBy: { createdAt: "asc" },
-      },
-    },
-  });
-
+  const member = getMember(id);
   if (!member) notFound();
 
-  // Serialise dates for client component
+  const contribs = CONTRIBUTIONS.filter(
+    (c) => c.memberId === id && c.createdAt >= yearStart && c.createdAt <= yearEnd
+  ).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+  const att = ATTENDANCE.filter(
+    (a) => a.memberId === id && a.checkedInAt >= yearStart && a.checkedInAt <= yearEnd
+  ).sort((a, b) => a.checkedInAt.getTime() - b.checkedInAt.getTime());
+
+  const memberLoans = LOANS.filter((l) => l.memberId === id).sort(
+    (a, b) => b.appliedAt.getTime() - a.appliedAt.getTime()
+  );
+
+  const memberFines = FINES.filter(
+    (f) => f.memberId === id && f.createdAt >= yearStart && f.createdAt <= yearEnd
+  ).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
   const data = {
     member: {
       id: member.id,
@@ -78,45 +61,44 @@ export default async function MemberStatementPage({
     },
     year,
     years,
-    contributions: member.contributions.map((c) => ({
-      id: c.id,
-      createdAt: c.createdAt.toISOString(),
-      welfareAmount: c.welfareAmount,
-      savingsAmount: c.savingsAmount,
-      loanRepayment: c.loanRepayment,
-      fineAmount: c.fineAmount,
-      shareAmount: c.shareAmount,
-      registrationFee: c.registrationFee,
-      otherAmount: c.otherAmount,
-      totalAmount: c.totalAmount,
-      paymentMethod: c.paymentMethod,
-      meeting: c.meeting
-        ? {
-            title: c.meeting.title,
-            meetingDate: c.meeting.meetingDate.toISOString(),
-          }
-        : null,
-      receipt: c.receipt
-        ? {
-            id: c.receipt.id,
-            receiptNumber: c.receipt.receiptNumber,
-            totalAmount: c.receipt.totalAmount,
-            integrityHash: c.receipt.integrityHash,
-            version: c.receipt.version,
-            issuedAt: c.receipt.issuedAt.toISOString(),
-          }
-        : null,
-    })),
-    attendance: member.attendance.map((a) => ({
-      id: a.id,
-      status: a.status,
-      checkedInAt: a.checkedInAt.toISOString(),
-      meeting: {
-        title: a.meeting.title,
-        meetingDate: a.meeting.meetingDate.toISOString(),
-      },
-    })),
-    fines: member.fines.map((f) => ({
+    contributions: contribs.map((c) => {
+      const r = RECEIPTS.find((x) => x.contributionId === c.id) ?? null;
+      const m = c.meetingId ? MEETINGS.find((x) => x.id === c.meetingId) ?? null : null;
+      return {
+        id: c.id,
+        createdAt: c.createdAt.toISOString(),
+        welfareAmount: c.welfareAmount,
+        savingsAmount: c.savingsAmount,
+        loanRepayment: c.loanRepayment,
+        fineAmount: c.fineAmount,
+        shareAmount: c.shareAmount,
+        registrationFee: c.registrationFee,
+        otherAmount: c.otherAmount,
+        totalAmount: c.totalAmount,
+        paymentMethod: c.paymentMethod,
+        meeting: m ? { title: m.title, meetingDate: m.meetingDate.toISOString() } : null,
+        receipt: r
+          ? {
+              id: r.id,
+              receiptNumber: r.receiptNumber,
+              totalAmount: r.totalAmount,
+              integrityHash: r.integrityHash,
+              version: r.version,
+              issuedAt: r.issuedAt.toISOString(),
+            }
+          : null,
+      };
+    }),
+    attendance: att.map((a) => {
+      const m = MEETINGS.find((x) => x.id === a.meetingId)!;
+      return {
+        id: a.id,
+        status: a.status,
+        checkedInAt: a.checkedInAt.toISOString(),
+        meeting: { title: m.title, meetingDate: m.meetingDate.toISOString() },
+      };
+    }),
+    fines: memberFines.map((f) => ({
       id: f.id,
       reason: f.reason,
       amount: f.amount,
@@ -124,27 +106,32 @@ export default async function MemberStatementPage({
       status: f.status,
       createdAt: f.createdAt.toISOString(),
     })),
-    loans: member.loans.map((l) => ({
-      id: l.id,
-      loanNumber: l.loanNumber,
-      principalAmount: l.principalAmount,
-      requestedAmount: l.requestedAmount,
-      interestRate: l.interestRate,
-      termMonths: l.termMonths,
-      amountRepaid: l.amountRepaid,
-      status: l.status,
-      purpose: l.purpose,
-      appliedAt: l.appliedAt.toISOString(),
-      disbursedAt: l.disbursedAt?.toISOString() ?? null,
-      dueAt: l.dueAt?.toISOString() ?? null,
-      schedule: l.schedule.map((s) => ({
-        id: s.id,
-        dueDate: s.dueDate.toISOString(),
-        amount: s.amount,
-        paidAmount: s.paidAmount,
-        status: s.status,
-      })),
-    })),
+    loans: memberLoans.map((l) => {
+      const schedule = LOAN_INSTALLMENTS.filter((s) => s.loanId === l.id).sort(
+        (a, b) => a.dueDate.getTime() - b.dueDate.getTime()
+      );
+      return {
+        id: l.id,
+        loanNumber: l.loanNumber,
+        principalAmount: l.principalAmount,
+        requestedAmount: l.requestedAmount,
+        interestRate: l.interestRate,
+        termMonths: l.termMonths,
+        amountRepaid: l.amountRepaid,
+        status: l.status,
+        purpose: l.purpose,
+        appliedAt: l.appliedAt.toISOString(),
+        disbursedAt: l.disbursedAt?.toISOString() ?? null,
+        dueAt: l.dueAt?.toISOString() ?? null,
+        schedule: schedule.map((s) => ({
+          id: s.id,
+          dueDate: s.dueDate.toISOString(),
+          amount: s.amount,
+          paidAmount: s.paidAmount,
+          status: s.status,
+        })),
+      };
+    }),
   };
 
   return (
@@ -152,9 +139,9 @@ export default async function MemberStatementPage({
       <div className="no-print">
         <Link
           href={`/members/${member.id}`}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-primary-700 transition-colors"
+          className="inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-dim hover:text-gold transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3 w-3" />
           Back to profile
         </Link>
       </div>

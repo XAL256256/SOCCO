@@ -1,32 +1,19 @@
-import { format } from "date-fns";
-import { ArrowUpRight, FileText, Wallet2 } from "lucide-react";
-import Link from "next/link";
-import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { Avatar } from "@/components/ui/Avatar";
-import { formatUGX } from "@/lib/utils";
+import { activeMembers, listLoans } from "@/lib/mock/queries";
 import { LoansClient } from "./LoansClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function LoansPage() {
   const user = await requireUser();
-  const [loans, members] = await Promise.all([
-    prisma.loan.findMany({
-      orderBy: { appliedAt: "desc" },
-      include: {
-        member: {
-          select: { id: true, firstName: true, lastName: true, memberNumber: true, phoneNumber: true },
-        },
-        schedule: { orderBy: { dueDate: "asc" } },
-      },
-    }),
-    prisma.member.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: { lastName: "asc" },
-      select: { id: true, firstName: true, lastName: true, memberNumber: true, phoneNumber: true },
-    }),
-  ]);
+  const loans = listLoans();
+  const members = activeMembers().map((m) => ({
+    id: m.id,
+    firstName: m.firstName,
+    lastName: m.lastName,
+    memberNumber: m.memberNumber,
+    phoneNumber: m.phoneNumber,
+  }));
 
   return (
     <LoansClient
@@ -42,6 +29,13 @@ export default async function LoansPage() {
           dueDate: s.dueDate.toISOString(),
           paidAt: s.paidAt?.toISOString() ?? null,
         })),
+        member: {
+          id: l.member.id,
+          firstName: l.member.firstName,
+          lastName: l.member.lastName,
+          memberNumber: l.member.memberNumber,
+          phoneNumber: l.member.phoneNumber,
+        },
       }))}
       members={members}
       role={user.role}

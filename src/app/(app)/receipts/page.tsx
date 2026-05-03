@@ -1,25 +1,19 @@
-import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { listReceipts } from "@/lib/mock/queries";
 import { ReceiptsClient } from "./ReceiptsClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReceiptsPage() {
   await requireUser();
-  const items = await prisma.receipt.findMany({
-    orderBy: { issuedAt: "desc" },
-    take: 200,
-    include: {
-      member: {
-        select: {
-          firstName: true,
-          lastName: true,
-          memberNumber: true,
-          phoneNumber: true,
-        },
-      },
-      contribution: true,
+  const items = listReceipts({ limit: 200 }).map((r) => ({
+    ...r,
+    member: {
+      firstName: r.member.firstName,
+      lastName: r.member.lastName,
+      memberNumber: r.member.memberNumber,
+      phoneNumber: r.member.phoneNumber,
     },
-  });
+  }));
   return <ReceiptsClient initial={items} />;
 }

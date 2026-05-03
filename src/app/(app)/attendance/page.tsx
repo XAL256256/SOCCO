@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { format, isFuture, isToday } from "date-fns";
 import { CalendarCheck2, Fingerprint } from "lucide-react";
-import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { listMeetings } from "@/lib/mock/queries";
+import { ATTENDANCE, MEETINGS, MEMBERS } from "@/lib/mock/data";
 
 export const dynamic = "force-dynamic";
 
@@ -31,24 +32,19 @@ function Initials({ name }: { name: string }) {
 export default async function AttendancePage() {
   await requireUser();
 
-  const meetings = await prisma.meeting.findMany({
-    orderBy: { meetingDate: "desc" },
-    include: { _count: { select: { attendance: true } } },
-    take: 12,
-  });
-
+  const meetings = listMeetings().slice(0, 12);
   const upcoming = meetings.find(
     (m) => isFuture(m.meetingDate) || isToday(m.meetingDate)
   );
 
-  const recent = await prisma.attendance.findMany({
-    orderBy: { checkedInAt: "desc" },
-    take: 20,
-    include: {
-      member: { select: { firstName: true, lastName: true, memberNumber: true } },
-      meeting: { select: { title: true } },
-    },
-  });
+  const recent = ATTENDANCE.slice()
+    .sort((a, b) => b.checkedInAt.getTime() - a.checkedInAt.getTime())
+    .slice(0, 20)
+    .map((a) => ({
+      ...a,
+      member: MEMBERS.find((m) => m.id === a.memberId)!,
+      meeting: MEETINGS.find((m) => m.id === a.meetingId)!,
+    }));
 
   return (
     <div className="space-y-5">

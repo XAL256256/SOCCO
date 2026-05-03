@@ -1,6 +1,7 @@
 import { format, subMonths, startOfMonth } from "date-fns";
-import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { activeMembers } from "@/lib/mock/queries";
+import { CONTRIBUTIONS, TODAY } from "@/lib/mock/data";
 import { ContributionHeatmap } from "@/components/reports/ContributionHeatmap";
 import { CollectionsChart } from "@/components/charts/CollectionsChart";
 import { ReportShell } from "@/components/reports/ReportShell";
@@ -12,30 +13,19 @@ export default async function ReportsInsightsPage() {
   await requireUser();
 
   const horizonMonths = 6;
-  const start = subMonths(startOfMonth(new Date()), horizonMonths - 1);
+  const start = subMonths(startOfMonth(TODAY), horizonMonths - 1);
 
-  const [members, contributions] = await Promise.all([
-    prisma.member.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: [{ firstName: "asc" }],
-      select: { id: true, firstName: true, lastName: true, memberNumber: true },
-    }),
-    prisma.contribution.findMany({
-      where: { createdAt: { gte: start } },
-      select: {
-        memberId: true,
-        totalAmount: true,
-        savingsAmount: true,
-        welfareAmount: true,
-        loanRepayment: true,
-        createdAt: true,
-      },
-    }),
-  ]);
+  const members = activeMembers().map((m) => ({
+    id: m.id,
+    firstName: m.firstName,
+    lastName: m.lastName,
+    memberNumber: m.memberNumber,
+  }));
+  const contributions = CONTRIBUTIONS.filter((c) => c.createdAt >= start);
 
   const labels: string[] = [];
   for (let i = horizonMonths - 1; i >= 0; i--) {
-    labels.push(format(subMonths(new Date(), i), "MMM"));
+    labels.push(format(subMonths(TODAY, i), "MMM"));
   }
 
   const heatmap = members.map((m) => {
@@ -91,17 +81,19 @@ export default async function ReportsInsightsPage() {
       title="Performance Insights"
       subtitle="Visual six-month overview · ideal for chairperson updates"
     >
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
-          { label: "Total received", value: totals.total, tint: "bg-primary-50 text-primary-700 border-primary-200" },
-          { label: "Total savings", value: totals.savings, tint: "bg-secondary-50 text-secondary-700 border-secondary-200" },
-          { label: "Total welfare", value: totals.welfare, tint: "bg-accent-50 text-accent-800 border-accent-200" },
+          { label: "Total received", value: totals.total, color: "#E8A838" },
+          { label: "Total savings",  value: totals.savings, color: "#2DC98A" },
+          { label: "Total welfare",  value: totals.welfare, color: "#5B9DFF" },
         ].map((s) => (
-          <div key={s.label} className={`rounded-[20px] border-2 p-4 ${s.tint}`}>
-            <p className="font-mono text-xs uppercase tracking-widest opacity-80">
+          <div key={s.label} className="rounded-[4px] border border-line bg-surface p-4">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-dim">
               {s.label}
             </p>
-            <p className="mt-2 font-mono text-xl font-bold">{formatUGX(s.value)}</p>
+            <p className="mt-2 font-syne text-xl font-bold" style={{ color: s.color }}>
+              {formatUGX(s.value)}
+            </p>
           </div>
         ))}
       </div>

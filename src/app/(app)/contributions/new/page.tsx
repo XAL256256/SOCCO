@@ -1,39 +1,38 @@
-import { prisma } from "@/lib/db";
-import { requireRole } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
+import { activeMembers, listMeetings, listSettings } from "@/lib/mock/queries";
 import { ContributionForm } from "./ContributionForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewContributionPage() {
-  await requireRole("ADMIN", "TREASURER", "SECRETARY", "CHAIRPERSON");
+  await requireUser();
 
-  const [members, meetings, settings] = await Promise.all([
-    prisma.member.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: [{ firstName: "asc" }],
-      select: { id: true, firstName: true, lastName: true, memberNumber: true, phoneNumber: true },
-    }),
-    prisma.meeting.findMany({
-      orderBy: { meetingDate: "desc" },
-      take: 10,
-      select: { id: true, title: true, meetingDate: true },
-    }),
-    prisma.setting.findMany({
-      where: { key: { in: ["sacco.welfarePerMeeting", "sacco.minSavings"] } },
-    }),
-  ]);
+  const members = activeMembers().map((m) => ({
+    id: m.id,
+    firstName: m.firstName,
+    lastName: m.lastName,
+    memberNumber: m.memberNumber,
+    phoneNumber: m.phoneNumber,
+  }));
 
-  const settingsMap = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const meetings = listMeetings()
+    .slice(0, 10)
+    .map((m) => ({
+      id: m.id,
+      title: m.title,
+      meetingDate: m.meetingDate.toISOString(),
+    }));
+
+  const settingsMap = Object.fromEntries(
+    listSettings().map((s) => [s.key, s.value])
+  );
 
   return (
     <ContributionForm
       members={members}
-      meetings={meetings.map((m) => ({
-        ...m,
-        meetingDate: m.meetingDate.toISOString(),
-      }))}
+      meetings={meetings}
       defaults={{
-        welfareAmount: Number(settingsMap["sacco.welfarePerMeeting"] || 0),
+        welfareAmount: Number(settingsMap["sacco.welfarePerMeeting"] || 30000),
       }}
     />
   );

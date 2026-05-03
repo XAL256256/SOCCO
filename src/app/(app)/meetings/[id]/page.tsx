@@ -2,8 +2,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { activeMembers, getMeeting, getMeetingAttendance } from "@/lib/mock/queries";
+import { CONTRIBUTIONS } from "@/lib/mock/data";
 import { MeetingDetailClient } from "./MeetingDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -16,37 +17,13 @@ export default async function MeetingDetailPage({
   await requireUser();
   const { id } = await params;
 
-  const [meeting, members] = await Promise.all([
-    prisma.meeting.findUnique({
-      where: { id },
-      include: {
-        attendance: {
-          include: {
-            member: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                memberNumber: true,
-              },
-            },
-          },
-        },
-        contributions: {
-          select: { totalAmount: true, savingsAmount: true, welfareAmount: true },
-        },
-      },
-    }),
-    prisma.member.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: [{ firstName: "asc" }],
-      select: { id: true, firstName: true, lastName: true, memberNumber: true },
-    }),
-  ]);
-
+  const meeting = getMeeting(id);
   if (!meeting) notFound();
 
-  const totals = meeting.contributions.reduce(
+  const attendance = getMeetingAttendance(id);
+  const meetingContribs = CONTRIBUTIONS.filter((c) => c.meetingId === id);
+
+  const totals = meetingContribs.reduce(
     (a, c) => ({
       total: a.total + c.totalAmount,
       savings: a.savings + c.savingsAmount,
@@ -55,48 +32,47 @@ export default async function MeetingDetailPage({
     { total: 0, savings: 0, welfare: 0 }
   );
 
+  const members = activeMembers().map((m) => ({
+    id: m.id,
+    firstName: m.firstName,
+    lastName: m.lastName,
+    memberNumber: m.memberNumber,
+  }));
+
   return (
     <div className="space-y-6">
       <Link
         href="/meetings"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-primary-700 transition-colors"
+        className="inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-dim hover:text-gold transition-colors"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-3 w-3" />
         Back to meetings
       </Link>
 
-      <div className="rounded-[32px] bg-gradient-to-br from-gray-900 to-gray-800 p-6 text-white shadow-floating sm:p-8">
-        <p className="font-mono text-xs uppercase tracking-widest text-gray-400">
+      <div className="rounded-[4px] border border-line bg-surface p-6 sm:p-7">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-dim">
           {format(meeting.meetingDate, "PPP · p")}
         </p>
-        <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
+        <h1 className="mt-2 font-syne text-3xl font-bold text-txt sm:text-4xl">
           {meeting.title}
         </h1>
         {meeting.location && (
-          <p className="mt-1 text-sm text-gray-300">{meeting.location}</p>
+          <p className="mt-1 font-dm text-sub text-sm">{meeting.location}</p>
         )}
-        <div className="mt-5 grid grid-cols-3 gap-4 max-w-xl">
-          <div className="rounded-2xl bg-white/5 p-4">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-gray-400">
-              Attendance
-            </p>
-            <p className="mt-1 font-display text-2xl font-bold">
-              {meeting.attendance.length}
-            </p>
+        <div className="mt-5 grid grid-cols-3 gap-3 max-w-xl">
+          <div className="rounded-[2px] bg-raised border border-line p-4">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-dim">Attendance</p>
+            <p className="mt-1 font-syne text-2xl font-bold text-txt">{attendance.length}</p>
           </div>
-          <div className="rounded-2xl bg-white/5 p-4">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-gray-400">
-              Total
-            </p>
-            <p className="mt-1 font-display text-2xl font-bold">
+          <div className="rounded-[2px] bg-raised border border-line p-4">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-dim">Total</p>
+            <p className="mt-1 font-syne text-2xl font-bold text-gold" data-money>
               {totals.total.toLocaleString()}
             </p>
           </div>
-          <div className="rounded-2xl bg-white/5 p-4">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-gray-400">
-              Savings
-            </p>
-            <p className="mt-1 font-display text-2xl font-bold">
+          <div className="rounded-[2px] bg-raised border border-line p-4">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-dim">Savings</p>
+            <p className="mt-1 font-syne text-2xl font-bold text-growth" data-money>
               {totals.savings.toLocaleString()}
             </p>
           </div>
@@ -107,7 +83,7 @@ export default async function MeetingDetailPage({
         meetingId={meeting.id}
         meetingTitle={meeting.title}
         members={members}
-        initialAttendance={meeting.attendance.map((a) => ({
+        initialAttendance={attendance.map((a) => ({
           memberId: a.memberId,
           status: a.status,
         }))}

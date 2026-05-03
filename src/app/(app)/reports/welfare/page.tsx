@@ -4,7 +4,8 @@ import {
   getWelfareArrears,
   getWelfareMatrix,
 } from "@/lib/reports";
-import { prisma } from "@/lib/db";
+import { listSettings } from "@/lib/mock/queries";
+import { TODAY } from "@/lib/mock/data";
 import { ReportShell } from "@/components/reports/ReportShell";
 import { MatrixTable } from "@/components/reports/MatrixTable";
 import { YearPicker } from "@/components/reports/PeriodPicker";
@@ -22,12 +23,12 @@ export default async function WelfareReport({
   const years = await getAvailableReportYears();
   const year = Number(sp.year) || years[years.length - 1];
 
-  const [matrix, expectedSetting] = await Promise.all([
-    getWelfareMatrix(year),
-    prisma.setting.findUnique({ where: { key: "sacco.welfarePerMeeting" } }),
-  ]);
+  const matrix = await getWelfareMatrix(year);
+  const expectedSetting = listSettings().find(
+    (s) => s.key === "sacco.welfarePerMeeting"
+  );
   const monthlyExpected = Number(expectedSetting?.value ?? 30000);
-  const arrears = await getWelfareArrears(new Date(), monthlyExpected);
+  const arrears = await getWelfareArrears(TODAY, monthlyExpected);
 
   return (
     <ReportShell

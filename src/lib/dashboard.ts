@@ -1,5 +1,7 @@
-import { prisma } from "./db";
-import { startOfMonth, subMonths, format } from "date-fns";
+import { format, startOfMonth, subMonths } from "date-fns";
+import {
+  CONTRIBUTIONS, MEMBERS, RECEIPTS, ATTENDANCE, LOANS, FINES, TODAY,
+} from "./mock/data";
 
 export type DashboardStats = {
   totalCollections: number;
@@ -19,149 +21,106 @@ export type DashboardStats = {
     totalAmount: number;
     issuedAt: string;
   }[];
-  collectionDelta: number; // % vs previous month
+  collectionDelta: number;
   pendingLoanCount: number;
   outstandingLoanTotal: number;
   outstandingFineCount: number;
 };
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const now = new Date();
+  const now = TODAY;
   const startToday = new Date(now);
   startToday.setHours(0, 0, 0, 0);
 
   const startThisMonth = startOfMonth(now);
   const startPrevMonth = startOfMonth(subMonths(now, 1));
 
-  const [
-    totalsAgg,
-    membersTotal,
-    membersActive,
-    presentToday,
-    receiptsToday,
-    thisMonthAgg,
-    prevMonthAgg,
-    monthlyRaw,
-    recentReceipts,
-  ] = await Promise.all([
-    prisma.contribution.aggregate({
-      _sum: {
-        totalAmount: true,
-        savingsAmount: true,
-        welfareAmount: true,
-        loanRepayment: true,
-        fineAmount: true,
-        shareAmount: true,
-        registrationFee: true,
-        otherAmount: true,
-      },
+  const totals = CONTRIBUTIONS.reduce(
+    (a, c) => ({
+      total: a.total + c.totalAmount,
+      savings: a.savings + c.savingsAmount,
+      welfare: a.welfare + c.welfareAmount,
+      loan: a.loan + c.loanRepayment,
+      shares: a.shares + c.shareAmount,
+      fines: a.fines + c.fineAmount,
+      reg: a.reg + c.registrationFee,
+      other: a.other + c.otherAmount,
     }),
-    prisma.member.count(),
-    prisma.member.count({ where: { status: "ACTIVE" } }),
-    prisma.attendance.count({
-      where: {
-        status: "PRESENT",
-        checkedInAt: { gte: startToday },
-      },
-    }),
-    prisma.receipt.count({ where: { issuedAt: { gte: startToday } } }),
-    prisma.contribution.aggregate({
-      _sum: { totalAmount: true },
-      where: { createdAt: { gte: startThisMonth } },
-    }),
-    prisma.contribution.aggregate({
-      _sum: { totalAmount: true },
-      where: {
-        createdAt: { gte: startPrevMonth, lt: startThisMonth },
-      },
-    }),
-    prisma.contribution.findMany({
-      where: { createdAt: { gte: subMonths(startThisMonth, 5) } },
-      select: {
-        createdAt: true,
-        totalAmount: true,
-        savingsAmount: true,
-        welfareAmount: true,
-      },
-    }),
-    prisma.receipt.findMany({
-      orderBy: { issuedAt: "desc" },
-      take: 6,
-      select: {
-        id: true,
-        receiptNumber: true,
-        totalAmount: true,
-        issuedAt: true,
-        member: { select: { firstName: true, lastName: true } },
-      },
-    }),
-  ]);
-
-  const [pendingLoanCount, activeLoans, outstandingFineCount] = await Promise.all([
-    prisma.loan.count({ where: { status: "PENDING" } }),
-    prisma.loan.findMany({
-      where: { status: { in: ["DISBURSED", "ACTIVE"] } },
-      select: { principalAmount: true, amountRepaid: true },
-    }),
-    prisma.fine.count({ where: { status: "OUTSTANDING" } }),
-  ]);
-  const outstandingLoanTotal = activeLoans.reduce(
-    (a, l) => a + Math.max(0, l.principalAmount - l.amountRepaid),
-    0
+    { total: 0, savings: 0, welfare: 0, loan: 0, shares: 0, fines: 0, reg: 0, other: 0 }
   );
 
+  const thisMonthTotal = CONTRIBUTIONS.filter((c) => c.createdAt >= startThisMonth).reduce(
+    (a, c) => a + c.totalAmount,
+    0
+  );
+  const prevMonthTotal = CONTRIBUTIONS.filter(
+    (c) => c.createdAt >= startPrevMonth && c.createdAt < startThisMonth
+  ).reduce((a, c) => a + c.totalAmount, 0);
+  const collectionDelta =
+    prevMonthTotal > 0 ? ((thisMonthTotal - prevMonthTotal) / prevMonthTotal) * 100 : 0;
+
+  // 6-month trend
   const monthlyMap = new Map<string, { amount: number; savings: number; welfare: number }>();
   for (let i = 5; i >= 0; i--) {
     const key = format(subMonths(startThisMonth, i), "MMM");
     monthlyMap.set(key, { amount: 0, savings: 0, welfare: 0 });
   }
-  for (const c of monthlyRaw) {
+  for (const c of CONTRIBUTIONS) {
+    if (c.createdAt < subMonths(startThisMonth, 5)) continue;
     const key = format(c.createdAt, "MMM");
     const cur = monthlyMap.get(key);
-    if (cur) {
-      cur.amount += c.totalAmount;
-      cur.savings += c.savingsAmount;
-      cur.welfare += c.welfareAmount;
-    }
+    if (!cur) continue;
+    cur.amount += c.totalAmount;
+    cur.savings += c.savingsAmount;
+    cur.welfare += c.welfareAmount;
   }
-  const monthlyTrend = Array.from(monthlyMap.entries()).map(([month, v]) => ({
-    month,
-    ...v,
-  }));
 
-  const sums = totalsAgg._sum;
   const contributionMix = [
-    { name: "Savings", value: sums.savingsAmount ?? 0, color: "#16a34a" },
-    { name: "Welfare", value: sums.welfareAmount ?? 0, color: "#ec5a2e" },
-    { name: "Loan Repayment", value: sums.loanRepayment ?? 0, color: "#eab308" },
-    { name: "Shares", value: sums.shareAmount ?? 0, color: "#0891b2" },
-    { name: "Fines", value: sums.fineAmount ?? 0, color: "#dc2626" },
-    { name: "Other", value: (sums.registrationFee ?? 0) + (sums.otherAmount ?? 0), color: "#78716c" },
+    { name: "Savings",        value: totals.savings, color: "#2DC98A" },
+    { name: "Welfare",        value: totals.welfare, color: "#E8A838" },
+    { name: "Loan repayment", value: totals.loan,    color: "#5B9DFF" },
+    { name: "Shares",         value: totals.shares,  color: "#A78BFA" },
+    { name: "Fines",          value: totals.fines,   color: "#E05454" },
+    { name: "Other",          value: totals.reg + totals.other, color: "#8892A4" },
   ].filter((s) => s.value > 0);
 
-  const thisMonth = thisMonthAgg._sum.totalAmount ?? 0;
-  const prevMonth = prevMonthAgg._sum.totalAmount ?? 0;
-  const collectionDelta =
-    prevMonth > 0 ? ((thisMonth - prevMonth) / prevMonth) * 100 : 0;
+  const recentReceipts = RECEIPTS.slice()
+    .sort((a, b) => b.issuedAt.getTime() - a.issuedAt.getTime())
+    .slice(0, 8)
+    .map((r) => {
+      const member = MEMBERS.find((m) => m.id === r.memberId);
+      return {
+        id: r.id,
+        receiptNumber: r.receiptNumber,
+        memberName: member ? `${member.firstName} ${member.lastName}` : "—",
+        totalAmount: r.totalAmount,
+        issuedAt: r.issuedAt.toISOString(),
+      };
+    });
+
+  const presentToday = ATTENDANCE.filter(
+    (a) => a.status === "PRESENT" && a.checkedInAt >= startToday
+  ).length;
+  const receiptsToday = RECEIPTS.filter((r) => r.issuedAt >= startToday).length;
+
+  const pendingLoanCount = LOANS.filter((l) => l.status === "PENDING").length;
+  const outstandingLoanTotal = LOANS.filter(
+    (l) => l.status === "DISBURSED" || l.status === "ACTIVE"
+  ).reduce((a, l) => a + Math.max(0, l.principalAmount - l.amountRepaid), 0);
+  const outstandingFineCount = FINES.filter((f) => f.status === "OUTSTANDING").length;
 
   return {
-    totalCollections: sums.totalAmount ?? 0,
-    totalSavings: sums.savingsAmount ?? 0,
-    totalWelfare: sums.welfareAmount ?? 0,
-    totalLoanRepayment: sums.loanRepayment ?? 0,
-    totalMembers: membersTotal,
-    activeMembers: membersActive,
+    totalCollections: totals.total,
+    totalSavings: totals.savings,
+    totalWelfare: totals.welfare,
+    totalLoanRepayment: totals.loan,
+    totalMembers: MEMBERS.length,
+    activeMembers: MEMBERS.filter((m) => m.status === "ACTIVE").length,
     membersPresentToday: presentToday,
     receiptsToday,
-    monthlyTrend,
+    monthlyTrend: Array.from(monthlyMap.entries()).map(([month, v]) => ({ month, ...v })),
     contributionMix,
-    recentReceipts: recentReceipts.map((r) => ({
-      id: r.id,
-      receiptNumber: r.receiptNumber,
-      memberName: `${r.member.firstName} ${r.member.lastName}`,
-      totalAmount: r.totalAmount,
-      issuedAt: r.issuedAt.toISOString(),
-    })),
+    recentReceipts,
     collectionDelta,
     pendingLoanCount,
     outstandingLoanTotal,

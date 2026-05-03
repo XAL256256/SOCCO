@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowUpRight, HandCoins } from "lucide-react";
-import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { listContributions } from "@/lib/mock/queries";
 import { formatUGX } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -24,15 +24,7 @@ function Initials({ name }: { name: string }) {
 
 export default async function ContributionsPage() {
   await requireUser();
-  const items = await prisma.contribution.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    include: {
-      member: { select: { firstName: true, lastName: true, memberNumber: true } },
-      receipt: true,
-      meeting: { select: { title: true } },
-    },
-  });
+  const items = listContributions({ limit: 100 });
 
   return (
     <div className="space-y-5">

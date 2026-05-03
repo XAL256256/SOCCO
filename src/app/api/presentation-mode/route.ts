@@ -1,11 +1,12 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { z } from "zod";
 import { DEMO_ROLE_COOKIE } from "@/lib/auth";
 
+const ROLES = ["ADMIN", "CHAIRPERSON", "TREASURER", "SECRETARY", "AUDITOR"] as const;
+
 const bodySchema = z.object({
-  role: z.nativeEnum(Role).nullable(),
+  role: z.enum(ROLES).nullable(),
 });
 
 export async function POST(req: Request) {

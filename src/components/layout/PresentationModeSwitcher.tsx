@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Role } from "@prisma/client";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+
+type Role = "ADMIN" | "CHAIRPERSON" | "TREASURER" | "SECRETARY" | "AUDITOR";
 
 const OPTIONS: { role: Role; label: string }[] = [
   { role: "CHAIRPERSON", label: "Chairperson" },

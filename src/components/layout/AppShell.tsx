@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { DemoBanner } from "./DemoBanner";
 
 type Props = {
   user: { fullName: string; role: string };
@@ -17,6 +18,7 @@ export function AppShell({ user, presentationCookie, children }: Props) {
     <div className="flex min-h-svh bg-bg">
       <Sidebar user={user} open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
+        <DemoBanner />
         <Topbar
           user={user}
           presentationCookie={presentationCookie}

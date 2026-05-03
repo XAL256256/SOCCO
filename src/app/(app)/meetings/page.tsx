@@ -1,16 +1,20 @@
 import { isFuture, isToday } from "date-fns";
-import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { listMeetings } from "@/lib/mock/queries";
+import { CONTRIBUTIONS } from "@/lib/mock/data";
 import { MeetingsClient } from "./MeetingsClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function MeetingsPage() {
   await requireUser();
-  const meetings = await prisma.meeting.findMany({
-    orderBy: { meetingDate: "desc" },
-    include: { _count: { select: { attendance: true, contributions: true } } },
-  });
+  const meetings = listMeetings().map((m) => ({
+    ...m,
+    _count: {
+      attendance: m._count.attendance,
+      contributions: CONTRIBUTIONS.filter((c) => c.meetingId === m.id).length,
+    },
+  }));
 
   const upcoming = meetings.filter(
     (m) => isFuture(m.meetingDate) || isToday(m.meetingDate)
