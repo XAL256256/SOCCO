@@ -1,6 +1,6 @@
 # NBOOG SACCO
 
-Next.js + PostgreSQL + Prisma. Demo login after seed: **`chair`** / **`socco`** (same password for `admin`, `treasurer`, `secretary`, `auditor`).
+Next.js + PostgreSQL + Prisma. Demo login after seed: **`chair`** / **`socco`** (same password for all seeded staff accounts).
 
 ---
 
@@ -9,31 +9,34 @@ Next.js + PostgreSQL + Prisma. Demo login after seed: **`chair`** / **`socco`** 
 ```bash
 npm install
 cp .env.example .env
-# Put your Neon DATABASE_URL in .env
+# Add your Postgres DATABASE_URL
 
 npm run db:push
 npm run db:seed
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
 ---
 
-## Deploy on Vercel
+## Deploy on Vercel (minimal clicks)
 
-1. Create a free Postgres DB at [neon.tech](https://neon.tech) and copy the connection string.
-2. Import this repo in [vercel.com](https://vercel.com).
-3. Add **one** env var: `DATABASE_URL` = that connection string.  
-   (`JWT_SECRET` is optional — if you skip it, the app derives a stable secret from `DATABASE_URL`.)
-4. After the first deploy succeeds, run once from your laptop (same `DATABASE_URL` in the command):
+**I can’t log into Vercel or Neon for you** — someone with access must connect storage once. After that, schema sync runs **automatically on every Vercel build** (`prisma db push` when `VERCEL=1`).
+
+1. In [vercel.com](https://vercel.com): open your project → **Storage** → **Create Database** → choose **Postgres** (Neon).  
+   Vercel attaches **`DATABASE_URL`** to the project — no copy/paste from another site.
+2. Redeploy (or push to GitHub). The build creates tables.
+3. **Seed once** (still required — it inserts users; we don’t run it every deploy or it would wipe data):
 
 ```bash
-DATABASE_URL="postgresql://..." npx prisma db push
-DATABASE_URL="postgresql://..." npm run db:seed
+# From your machine, same URL Vercel uses (Vercel → Settings → Env → DATABASE_URL → reveal & copy)
+DATABASE_URL="postgresql://…" npm run db:seed
 ```
 
-5. Sign in with **`chair`** / **`socco`**.
+4. Sign in: **`chair`** / **`socco`**.
+
+Optional: set **`JWT_SECRET`** in Vercel if you want a fixed signing key instead of deriving from `DATABASE_URL`.
+
+Disable auto-push: **`PRISMA_SKIP_PUSH=1`** in Vercel env.
 
 ---
 
@@ -42,9 +45,9 @@ DATABASE_URL="postgresql://..." npm run db:seed
 | Command | Purpose |
 |---|---|
 | `npm run dev` | Dev server |
-| `npm run build` | Production build |
-| `npm run db:push` | Apply schema to DB |
-| `npm run db:seed` | Load demo data |
+| `npm run build` | Production build (on Vercel also runs `db push`) |
+| `npm run db:push` | Apply schema (local / manual) |
+| `npm run db:seed` | Load demo data (**once** per database) |
 
 ---
 
