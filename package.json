@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && node scripts/prisma-push-if-enabled.mjs && next build",
+    "build": "prisma generate && node scripts/prisma-push-if-enabled.mjs && node scripts/auto-bootstrap-if-empty.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
