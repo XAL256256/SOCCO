@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { Input } from "@/components/ui/Input";

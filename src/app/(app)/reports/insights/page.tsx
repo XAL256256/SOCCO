@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { ContributionHeatmap } from "@/components/reports/ContributionHeatmap";
 import { CollectionsChart } from "@/components/charts/CollectionsChart";
-import { MixChart } from "@/components/charts/MixChart";
 import { ReportShell } from "@/components/reports/ReportShell";
 import { formatUGX } from "@/lib/utils";
 
@@ -107,24 +106,7 @@ export default async function ReportsInsightsPage() {
         ))}
       </div>
 
-      <div className="mt-6 grid grid-cols-12 gap-5">
-        <div className="col-span-12 rounded-[24px] bg-white p-5 lg:col-span-8 border border-gray-100">
-          <h2 className="font-display text-sm font-bold uppercase tracking-widest text-gray-500">
-            Six-month trend
-          </h2>
-          <CollectionsChart data={trend} />
-        </div>
-        <div className="col-span-12 rounded-[24px] bg-white p-5 lg:col-span-4 border border-gray-100">
-          <h2 className="font-display text-sm font-bold uppercase tracking-widest text-gray-500">
-            Mix
-          </h2>
-          {mix.length > 0 ? (
-            <MixChart data={mix} />
-          ) : (
-            <p className="mt-12 text-center text-sm text-gray-400">No data yet</p>
-          )}
-        </div>
-      </div>
+      <CollectionsChart monthlyData={trend} mixData={mix} />
 
       <div className="mt-6">
         <h2 className="font-display text-sm font-bold uppercase tracking-widest text-gray-500">

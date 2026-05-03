@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ShieldCheck, Wallet2 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -75,58 +75,57 @@ export function ApprovalsClient({
     <>
       <div className="space-y-8">
         <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-primary-600">
-            Chairperson · {role}
+          <p className="font-mono text-[9px] uppercase tracking-widest text-gold opacity-70">
+            Chairperson &middot; {role}
           </p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
-            Approvals
-          </h1>
-          <p className="text-sm text-gray-500">
-            Pending decisions for loans, fines, and absences.
+          <h1 className="font-syne text-2xl font-bold text-txt mt-1">Approvals</h1>
+          <p className="font-mono text-[10px] text-dim tracking-widest uppercase mt-1">
+            Pending decisions for loans and fines
           </p>
         </div>
 
-        <section className="rounded-[28px] bg-white p-5 shadow-elevated sm:p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Wallet2 className="h-4 w-4 text-primary-700" />
-            <h2 className="font-display text-sm font-bold uppercase tracking-widest text-gray-700">
+        <section className="bg-surface border border-line rounded-[4px] overflow-hidden">
+          <div className="px-5 py-4 border-b border-line flex items-center gap-2">
+            <Wallet2 className="h-4 w-4 text-gold opacity-70" />
+            <h2 className="font-mono text-[10px] uppercase tracking-widest text-dim">
               Pending loan applications ({pendingLoans.length})
             </h2>
           </div>
           {pendingLoans.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500">
+            <p className="py-10 text-center font-mono text-[10px] text-dim tracking-widest uppercase">
               No loan applications waiting for review.
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {pendingLoans.map((l) => (
                 <li
                   key={l.id}
-                  className="flex flex-wrap items-center gap-3 py-3"
+                  className="flex flex-wrap items-center gap-3 px-5 py-3.5 hover:bg-raised transition-colors"
                 >
-                  <Avatar name={`${l.member.firstName} ${l.member.lastName}`} />
+                  <div className="w-8 h-8 rounded-[2px] bg-gold-dim border border-gold-bd flex items-center justify-center flex-shrink-0">
+                    <span className="font-syne font-bold text-gold text-[10px]">
+                      {`${l.member.firstName[0]}${l.member.lastName[0]}`}
+                    </span>
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold">
+                    <p className="font-dm text-sm font-medium text-txt">
                       {l.member.firstName} {l.member.lastName}
                     </p>
-                    <p className="font-mono text-xs text-gray-500">
-                      {l.loanNumber} · {l.member.memberNumber} · Applied{" "}
+                    <p className="font-mono text-[9px] text-dim">
+                      {l.loanNumber} &middot; {l.member.memberNumber} &middot; Applied{" "}
                       {format(new Date(l.appliedAt), "PP")}
                     </p>
                     {l.purpose && (
-                      <p className="text-xs italic text-gray-600 mt-1">
+                      <p className="font-dm text-xs text-sub italic mt-0.5">
                         &ldquo;{l.purpose}&rdquo;
                       </p>
                     )}
                   </div>
-                  <p className="font-mono font-bold">
+                  <p className="font-mono font-bold text-gold" data-money>
                     {formatUGX(l.requestedAmount)}
                   </p>
-                  <p className="text-xs text-gray-500">{l.termMonths} mo</p>
-                  <Link
-                    href={`/loans`}
-                    className="btn-primary !py-2 !px-3 text-sm"
-                  >
+                  <p className="font-mono text-xs text-dim">{l.termMonths} mo</p>
+                  <Link href="/loans" className="btn-primary text-xs px-3 py-1.5">
                     Review
                   </Link>
                 </li>
@@ -135,45 +134,47 @@ export function ApprovalsClient({
           )}
         </section>
 
-        <section className="rounded-[28px] bg-white p-5 shadow-elevated sm:p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-secondary-600" />
-            <h2 className="font-display text-sm font-bold uppercase tracking-widest text-gray-700">
+        <section className="bg-surface border border-line rounded-[4px] overflow-hidden">
+          <div className="px-5 py-4 border-b border-line flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-danger opacity-70" />
+            <h2 className="font-mono text-[10px] uppercase tracking-widest text-dim">
               Outstanding fines ({outstandingFines.length})
             </h2>
           </div>
           {outstandingFines.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500">
-              No fines outstanding. 🎉
+            <p className="py-10 text-center font-mono text-[10px] text-dim tracking-widest uppercase">
+              No fines outstanding.
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {outstandingFines.map((f) => (
                 <li
                   key={f.id}
-                  className="flex flex-wrap items-center gap-3 py-3"
+                  className="flex flex-wrap items-center gap-3 px-5 py-3.5 hover:bg-raised transition-colors"
                 >
-                  <Avatar name={`${f.member.firstName} ${f.member.lastName}`} />
+                  <div className="w-8 h-8 rounded-[2px] bg-danger-dim border border-danger/20 flex items-center justify-center flex-shrink-0">
+                    <span className="font-syne font-bold text-danger text-[10px]">
+                      {`${f.member.firstName[0]}${f.member.lastName[0]}`}
+                    </span>
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold">
+                    <p className="font-dm text-sm font-medium text-txt">
                       {f.member.firstName} {f.member.lastName}
                     </p>
-                    <p className="font-mono text-xs text-gray-500">
-                      {f.member.memberNumber} ·{" "}
-                      {format(new Date(f.createdAt), "PP")} · {f.reason.replace(/_/g, " ")}
+                    <p className="font-mono text-[9px] text-dim">
+                      {f.member.memberNumber} &middot;{" "}
+                      {format(new Date(f.createdAt), "PP")} &middot; {f.reason.replace(/_/g, " ")}
                     </p>
                     {f.description && (
-                      <p className="text-xs text-gray-600 mt-1">
-                        {f.description}
-                      </p>
+                      <p className="font-dm text-xs text-sub mt-0.5">{f.description}</p>
                     )}
                   </div>
-                  <p className="font-mono font-bold text-red-600">
+                  <p className="font-mono font-bold text-danger" data-money>
                     {formatUGX(f.amount)}
                   </p>
                   <button
                     onClick={() => setWaiving(f)}
-                    className="btn-outline !py-2 !px-3 text-sm"
+                    className="font-mono text-[9px] tracking-widest uppercase px-3 py-1.5 rounded-[2px] border border-danger/30 text-danger hover:bg-danger-dim transition-colors"
                   >
                     Waive
                   </button>

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Check, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { Input } from "@/components/ui/Input";
 import { FingerprintScanner } from "@/components/attendance/FingerprintScanner";

@@ -1,82 +1,219 @@
 "use client";
 
+import { motion } from "framer-motion";
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+  ResponsiveContainer, AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell,
 } from "recharts";
-import { compactNumber, formatUGX } from "@/lib/utils";
 
-type Datum = { month: string; amount: number; savings: number; welfare: number };
-
-export function CollectionsChart({ data }: { data: Datum[] }) {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="h-72 w-full">
-      <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 10, right: 16, bottom: 0, left: 0 }}>
-          <defs>
-            <linearGradient id="amt" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ec5a2e" stopOpacity={0.6} />
-              <stop offset="100%" stopColor="#ec5a2e" stopOpacity={0.02} />
-            </linearGradient>
-            <linearGradient id="sv" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#16a34a" stopOpacity={0.5} />
-              <stop offset="100%" stopColor="#16a34a" stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid stroke="#f5f5f4" vertical={false} />
-          <XAxis
-            dataKey="month"
-            stroke="#a8a29e"
-            tickLine={false}
-            axisLine={false}
-            tick={{ fontFamily: "var(--font-body)", fontSize: 12 }}
+    <div className="bg-raised border border-line-h rounded-[4px] px-3 py-2 shadow-xl">
+      <p className="font-mono text-[10px] text-dim tracking-widest uppercase mb-1">{label}</p>
+      {payload.map((entry: any, i: number) => (
+        <div key={i} className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
+          <span className="font-mono text-xs text-sub">{entry.name}</span>
+          <span className="font-mono text-xs text-txt ml-2">
+            UGX {(entry.value as number)?.toLocaleString()}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const PieTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-raised border border-line-h rounded-[4px] px-3 py-2 shadow-xl">
+      <p className="font-mono text-xs text-txt">{payload[0].name}</p>
+      <p className="font-mono text-xs text-sub">
+        UGX {(payload[0].value as number)?.toLocaleString()}
+      </p>
+    </div>
+  );
+};
+
+function EmptyChart({ label }: { label: string }) {
+  return (
+    <div className="h-full flex flex-col items-center justify-center gap-3">
+      <div className="relative w-16 h-16">
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            className="absolute inset-0 rounded-full border border-line"
+            animate={{ scale: [1, 1.4 + i * 0.2], opacity: [0.4, 0] }}
+            transition={{ duration: 2, delay: i * 0.5, repeat: Infinity, ease: "easeOut" }}
           />
-          <YAxis
-            stroke="#a8a29e"
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(v) => compactNumber(v)}
-            tick={{ fontFamily: "var(--font-mono)", fontSize: 11 }}
-            width={48}
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#1c1917",
-              border: "none",
-              borderRadius: "16px",
-              fontFamily: "var(--font-body)",
-              padding: "12px 14px",
-              color: "#fff",
-              boxShadow: "0 10px 30px -10px rgba(0,0,0,0.3)",
-            }}
-            labelStyle={{ color: "#fef4ee", fontWeight: 700 }}
-            formatter={(value: number, name) => [formatUGX(value), name]}
-          />
-          <Area
-            type="monotone"
-            dataKey="amount"
-            name="Total"
-            stroke="#ec5a2e"
-            strokeWidth={3}
-            fill="url(#amt)"
-            activeDot={{ r: 6, strokeWidth: 0, fill: "#ec5a2e" }}
-          />
-          <Area
-            type="monotone"
-            dataKey="savings"
-            name="Savings"
-            stroke="#16a34a"
-            strokeWidth={2.5}
-            fill="url(#sv)"
-            activeDot={{ r: 5, strokeWidth: 0, fill: "#16a34a" }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+        ))}
+        <div className="absolute inset-0 rounded-full border border-gold-bd flex items-center justify-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-gold opacity-40" />
+        </div>
+      </div>
+      <p className="font-mono text-[10px] text-dim tracking-widest uppercase">{label}</p>
+    </div>
+  );
+}
+
+interface CollectionsChartProps {
+  monthlyData: Array<{ month: string; amount: number; savings: number; welfare: number }>;
+  mixData: Array<{ name: string; value: number; color: string }>;
+}
+
+export function CollectionsChart({ monthlyData, mixData }: CollectionsChartProps) {
+  const totalMix = mixData.reduce((s, d) => s + d.value, 0);
+  const mixPct = mixData.map((d) => ({
+    ...d,
+    pct: totalMix > 0 ? (d.value / totalMix) * 100 : 0,
+  }));
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mt-3">
+      {/* Area chart — 8 cols */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+        className="lg:col-span-8 bg-surface border border-line rounded-[4px] p-5"
+      >
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <p className="font-mono text-[10px] text-dim tracking-[0.12em] uppercase mb-0.5">
+              Monthly Collections
+            </p>
+            <p className="font-dm text-sub text-xs">Last six months · contributions vs savings</p>
+          </div>
+          <div className="flex items-center gap-4">
+            {[
+              { color: "#E8A838", label: "Total" },
+              { color: "#2DC98A", label: "Savings" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="font-mono text-[10px] text-sub tracking-widest uppercase">
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-52">
+          {monthlyData.some((d) => d.amount > 0) ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyData} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#E8A838" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#E8A838" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2DC98A" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#2DC98A" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  stroke="oklch(30% 0.02 250 / 0.3)"
+                  strokeDasharray="1 4"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: "#4A5268", fontSize: 10, fontFamily: "JetBrains Mono" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "#4A5268", fontSize: 10, fontFamily: "JetBrains Mono" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v: number) =>
+                    v === 0 ? "0" : `${(v / 1_000).toFixed(0)}k`
+                  }
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="amount"
+                  name="Total"
+                  stroke="#E8A838"
+                  strokeWidth={2}
+                  fill="url(#goldGrad)"
+                  dot={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="savings"
+                  name="Savings"
+                  stroke="#2DC98A"
+                  strokeWidth={1.5}
+                  fill="url(#greenGrad)"
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChart label="No collections yet" />
+          )}
+        </div>
+      </motion.div>
+
+      {/* Pie — 4 cols */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.5 }}
+        className="lg:col-span-4 bg-surface border border-line rounded-[4px] p-5"
+      >
+        <p className="font-mono text-[10px] text-dim tracking-[0.12em] uppercase mb-0.5">
+          Contribution Mix
+        </p>
+        <p className="font-dm text-sub text-xs mb-5">All-time category split</p>
+
+        <div className="h-44 flex items-center justify-center">
+          {mixPct.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={mixPct}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={72}
+                  paddingAngle={3}
+                  dataKey="value"
+                  strokeWidth={0}
+                >
+                  {mixPct.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip content={<PieTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyChart label="No data yet" />
+          )}
+        </div>
+
+        {mixPct.length > 0 && (
+          <div className="space-y-2 mt-2">
+            {mixPct.map((item, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
+                  <span className="font-dm text-xs text-sub">{item.name}</span>
+                </div>
+                <span className="font-mono text-xs text-txt">{item.pct.toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

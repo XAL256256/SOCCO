@@ -10,7 +10,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Avatar } from "@/components/ui/Avatar";
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/Input";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { Modal } from "@/components/ui/Modal";
 import { formatUGX } from "@/lib/utils";
+import { LoanStats } from "@/components/loans/LoanStats";
 
 type Member = {
   id: string;
@@ -114,11 +115,9 @@ export function LoansClient({
       <div className="space-y-6">
         <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight">
-              Loans
-            </h1>
-            <p className="text-sm text-gray-500">
-              {loans.length} total · {counts.PENDING} awaiting approval
+            <h1 className="font-syne text-2xl font-bold text-txt">Loans</h1>
+            <p className="font-mono text-[10px] text-dim tracking-widest uppercase mt-1">
+              {loans.length} total &middot; {counts.PENDING} awaiting approval
             </p>
           </div>
           <MagneticButton onClick={() => setCreating(true)}>
@@ -128,26 +127,11 @@ export function LoansClient({
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <KPI
-            label="Outstanding loans"
-            value={formatUGX(totals.outstanding)}
-            icon={<Coins className="h-5 w-5" />}
-            tint="bg-primary-50 text-primary-700 border-primary-200"
-          />
-          <KPI
-            label="Pending approval"
-            value={formatUGX(totals.pending)}
-            icon={<AlertTriangle className="h-5 w-5" />}
-            tint="bg-accent-50 text-accent-800 border-accent-200"
-          />
-          <KPI
-            label="Active disbursements"
-            value={String(totals.disbursed)}
-            icon={<ShieldCheck className="h-5 w-5" />}
-            tint="bg-secondary-50 text-secondary-700 border-secondary-200"
-          />
-        </div>
+        <LoanStats
+          outstanding={totals.outstanding}
+          pending={totals.pending}
+          activeDisbursements={totals.disbursed}
+        />
 
         {/* Tabs */}
         <div className="flex gap-1 overflow-x-auto rounded-2xl bg-gray-100 p-1">
