@@ -45,6 +45,15 @@ function LoginInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password }),
       });
+
+      // Guard against non-JSON responses (e.g. 500 HTML error pages)
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        setErrors({ form: `Server error (${res.status}). Check environment variables and database connection.` });
+        toast.error("Server error — see console for details");
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) {
         setErrors({ form: data.error || "Login failed" });

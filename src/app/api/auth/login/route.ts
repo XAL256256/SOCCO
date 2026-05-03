@@ -4,6 +4,7 @@ import { verifyPassword } from "@/lib/crypto";
 import { createSession, getRequestContext } from "@/lib/auth";
 import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { audit, AUDIT_ACTIONS } from "@/lib/audit";
+import { handleApiError } from "@/lib/api";
 import { loginSchema } from "@/lib/validators";
 import { AuditStatus } from "@prisma/client";
 
@@ -11,6 +12,7 @@ const MAX_FAILED_LOGINS = 5;
 const LOCKOUT_MINUTES = 15;
 
 export async function POST(req: NextRequest) {
+  try {
   const { ip, userAgent } = await getRequestContext();
   const ipKey = ip ?? "unknown";
 
@@ -168,4 +170,7 @@ export async function POST(req: NextRequest) {
       role: user.role,
     },
   });
+  } catch (err) {
+    return handleApiError(err);
+  }
 }
