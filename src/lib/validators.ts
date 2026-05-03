@@ -3,11 +3,6 @@ import { z } from "zod";
 const phoneRegex = /^(?:\+256|0)\d{9}$/;
 const ugxAmount = z.coerce.number().int().min(0).max(1_000_000_000);
 
-export const loginSchema = z.object({
-  identifier: z.string().min(3, "Username or email required").max(100),
-  password: z.string().min(1, "Password required").max(128),
-});
-
 export const memberSchema = z.object({
   firstName: z.string().min(1).max(60).trim(),
   lastName: z.string().min(1).max(60).trim(),

@@ -7,7 +7,6 @@ import {
   Fingerprint,
   HandCoins,
   LayoutDashboard,
-  LogOut,
   Receipt,
   Settings,
   ShieldCheck,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +24,6 @@ type NavItem = {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
-  roles?: string[];
 };
 
 const NAV: NavItem[] = [
@@ -36,7 +33,7 @@ const NAV: NavItem[] = [
   { href: "/attendance", label: "Attendance", icon: Fingerprint },
   { href: "/contributions", label: "Contributions", icon: HandCoins },
   { href: "/loans", label: "Loans", icon: Wallet2 },
-  { href: "/approvals", label: "Approvals", icon: ShieldCheck, roles: ["ADMIN", "CHAIRPERSON"] },
+  { href: "/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/receipts", label: "Receipts", icon: Receipt },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -50,13 +47,7 @@ type Props = {
 
 export function Sidebar({ user, open = false, onClose }: Props) {
   const pathname = usePathname();
-  const visible = NAV.filter((n) => !n.roles || n.roles.includes(user.role));
-
-  const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    toast.success("Signed out");
-    window.location.href = "/login";
-  };
+  const visible = NAV;
 
   const content = (
     <div className="flex h-full flex-col gap-2 p-4">
@@ -138,14 +129,6 @@ export function Sidebar({ user, open = false, onClose }: Props) {
               {user.role.toLowerCase()}
             </p>
           </div>
-          <button
-            onClick={logout}
-            className="rounded-full p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
-            aria-label="Sign out"
-            title="Sign out"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
         </div>
       </div>
     </div>

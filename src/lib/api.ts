@@ -41,6 +41,15 @@ export function handleApiError(err: unknown) {
   if (err instanceof Error) {
     if (err.message === "UNAUTHORIZED") return unauthorized();
     if (err.message === "FORBIDDEN") return forbidden();
+    if (err.message === "NO_STAFF_USER") {
+      return NextResponse.json(
+        {
+          error:
+            "No staff user in database. Run npm run db:seed against DATABASE_URL.",
+        },
+        { status: 503 }
+      );
+    }
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === "P2002") {

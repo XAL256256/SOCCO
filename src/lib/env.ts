@@ -4,7 +4,6 @@ import { z } from "zod";
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  SESSION_COOKIE_NAME: z.string().default("nboog_session"),
   APP_NAME: z.string().default("NBOOG SACCO"),
   APP_URL: z.string().default("http://localhost:3000"),
 });
@@ -21,7 +20,6 @@ function getEnv(): Env {
       get(_target, prop: string) {
         const defaults: Record<string, string> = {
           NODE_ENV: process.env.NODE_ENV ?? "production",
-          SESSION_COOKIE_NAME: process.env.SESSION_COOKIE_NAME ?? "nboog_session",
           APP_NAME: process.env.APP_NAME ?? "NBOOG SACCO",
           APP_URL: process.env.APP_URL ?? "http://localhost:3000",
           DATABASE_URL: process.env.DATABASE_URL ?? "",
