@@ -6,8 +6,9 @@ import { prisma } from "./db";
 import { env } from "./env";
 import { sha256 } from "./crypto";
 
-const SECRET = new TextEncoder().encode(env.JWT_SECRET);
-const COOKIE = env.SESSION_COOKIE_NAME;
+// Lazy constants — evaluated on first request, not at module load / build time
+const getSecret = () => new TextEncoder().encode(env.JWT_SECRET);
+const getCookie = () => env.SESSION_COOKIE_NAME;
 const ISS = "nboog-sacco";
 const AUD = "nboog-sacco-app";
 const SESSION_DURATION_DAYS = 7;
@@ -28,12 +29,12 @@ export async function signSession(payload: SessionPayload): Promise<string> {
     .setAudience(AUD)
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION_DAYS}d`)
-    .sign(SECRET);
+    .sign(getSecret());
 }
 
 export async function verifySession(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET, {
+    const { payload } = await jwtVerify(token, getSecret(), {
       issuer: ISS,
       audience: AUD,
       algorithms: ["HS256"],
@@ -86,7 +87,7 @@ export async function createSession(opts: {
   });
 
   const cookieStore = await cookies();
-  cookieStore.set(COOKIE, token, {
+  cookieStore.set(getCookie(), token, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
     sameSite: "lax",
@@ -99,7 +100,7 @@ export async function createSession(opts: {
 
 export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE)?.value;
+  const token = cookieStore.get(getCookie())?.value;
   if (token) {
     const decoded = await verifySession(token);
     if (decoded?.jti) {
@@ -111,7 +112,7 @@ export async function destroySession(): Promise<void> {
         .catch(() => undefined);
     }
   }
-  cookieStore.delete(COOKIE);
+  cookieStore.delete(getCookie());
 }
 
 export type AuthenticatedUser = {
@@ -124,7 +125,7 @@ export type AuthenticatedUser = {
 
 export const getCurrentUser = cache(async (): Promise<AuthenticatedUser | null> => {
   const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE)?.value;
+  const token = cookieStore.get(getCookie())?.value;
   if (!token) return null;
 
   const session = await verifySession(token);
