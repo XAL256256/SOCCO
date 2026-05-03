@@ -24,6 +24,8 @@ type NavItem = {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
+  /** If set, only these roles see the link (matches presentation “View as”). */
+  roles?: string[];
 };
 
 const NAV: NavItem[] = [
@@ -33,7 +35,12 @@ const NAV: NavItem[] = [
   { href: "/attendance", label: "Attendance", icon: Fingerprint },
   { href: "/contributions", label: "Contributions", icon: HandCoins },
   { href: "/loans", label: "Loans", icon: Wallet2 },
-  { href: "/approvals", label: "Approvals", icon: ShieldCheck },
+  {
+    href: "/approvals",
+    label: "Approvals",
+    icon: ShieldCheck,
+    roles: ["ADMIN", "CHAIRPERSON"],
+  },
   { href: "/receipts", label: "Receipts", icon: Receipt },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -47,7 +54,9 @@ type Props = {
 
 export function Sidebar({ user, open = false, onClose }: Props) {
   const pathname = usePathname();
-  const visible = NAV;
+  const visible = NAV.filter(
+    (n) => !n.roles || n.roles.includes(user.role)
+  );
 
   const content = (
     <div className="flex h-full flex-col gap-2 p-4">

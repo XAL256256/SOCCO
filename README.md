@@ -1,6 +1,6 @@
 # NBOOG SACCO
 
-Next.js + PostgreSQL + Prisma. **No login screen** — the app assumes a single operator and attaches actions to the seeded staff user `chair` (or the first user in the database).
+Next.js + PostgreSQL + Prisma. **No login** — the navbar **View as** control switches which seeded staff persona you’re presenting as (Chairperson, Treasurer, …). Default uses `chair`. Audit trails still use that user’s real ID from the database.
 
 Seed once: `npm run db:push` then `npm run db:seed`.
 
