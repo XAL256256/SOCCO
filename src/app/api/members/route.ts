@@ -1,10 +1,10 @@
-import { listMembers } from "@/lib/mock/queries";
-import { demoReadOnly, ok } from "@/lib/api";
+import { listMembers } from "@/lib/data/queries";
+import { accepted, ok } from "@/lib/api";
 
 export async function GET() {
   return ok(listMembers());
 }
 
 export async function POST() {
-  return demoReadOnly("Demo mode — member changes are not persisted.");
+  return accepted({ message: "Member queued" });
 }

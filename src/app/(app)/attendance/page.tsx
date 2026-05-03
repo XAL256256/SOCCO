@@ -2,8 +2,8 @@ import Link from "next/link";
 import { format, isFuture, isToday } from "date-fns";
 import { CalendarCheck2, Fingerprint } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { listMeetings } from "@/lib/mock/queries";
-import { ATTENDANCE, MEETINGS, MEMBERS } from "@/lib/mock/data";
+import { listMeetings } from "@/lib/data/queries";
+import { ATTENDANCE, MEETINGS, MEMBERS } from "@/lib/data/source";
 
 export const dynamic = "force-dynamic";
 

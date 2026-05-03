@@ -22,17 +22,17 @@ function StatCard({
   color = "default", index, subtext,
 }: StatCardProps) {
   const accents: Record<string, string> = {
-    gold:    "#E8A838",
-    growth:  "#2DC98A",
-    danger:  "#E05454",
-    default: "#8892A4",
+    gold:    "#7C611C",
+    growth:  "#1F6A40",
+    danger:  "#B91C1C",
+    default: "#3D352D",
   };
   const accent = accents[color];
 
   const DeltaIcon =
     delta == null ? null : delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
   const deltaColor =
-    delta == null ? "#8892A4" : delta > 0 ? "#2DC98A" : delta < 0 ? "#E05454" : "#8892A4";
+    delta == null ? "#75695B" : delta > 0 ? "#1F6A40" : delta < 0 ? "#B91C1C" : "#75695B";
 
   return (
     <motion.div

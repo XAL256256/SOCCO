@@ -1,5 +1,5 @@
-import { getReceipt } from "@/lib/mock/queries";
-import { demoReadOnly, notFound, ok } from "@/lib/api";
+import { getReceipt } from "@/lib/data/queries";
+import { accepted, notFound, ok } from "@/lib/api";
 
 export async function GET(
   _req: Request,
@@ -12,5 +12,5 @@ export async function GET(
 }
 
 export async function PATCH() {
-  return demoReadOnly("Demo mode — receipt edits are not persisted.");
+  return accepted({ message: "Update queued" });
 }

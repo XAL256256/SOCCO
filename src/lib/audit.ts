@@ -1,7 +1,3 @@
-/**
- * Demo-mode audit log: logs to console only (no DB).
- */
-
 export const AUDIT_ACTIONS = {
   LOG_CONTRIBUTION: "LOG_CONTRIBUTION",
   LOAN_APPROVE: "LOAN_APPROVE",

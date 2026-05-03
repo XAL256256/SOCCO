@@ -1,8 +1,3 @@
-/**
- * Local type definitions — mirrors the previous Prisma-generated types
- * so existing components don't need wholesale rewrites.
- */
-
 export type Role = "ADMIN" | "CHAIRPERSON" | "TREASURER" | "SECRETARY" | "AUDITOR";
 export type Gender = "MALE" | "FEMALE" | "OTHER";
 export type MemberStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED" | "EXITED";

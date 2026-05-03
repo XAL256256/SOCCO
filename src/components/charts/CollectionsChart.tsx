@@ -89,8 +89,8 @@ export function CollectionsChart({ monthlyData, mixData }: CollectionsChartProps
           </div>
           <div className="flex items-center gap-4">
             {[
-              { color: "#E8A838", label: "Total" },
-              { color: "#2DC98A", label: "Savings" },
+              { color: "#7C611C", label: "Total" },
+              { color: "#1F6A40", label: "Savings" },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
@@ -108,27 +108,27 @@ export function CollectionsChart({ monthlyData, mixData }: CollectionsChartProps
               <AreaChart data={monthlyData} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#E8A838" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#E8A838" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#7C611C" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#7C611C" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2DC98A" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#2DC98A" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#1F6A40" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#1F6A40" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
-                  stroke="oklch(30% 0.02 250 / 0.3)"
+                  stroke="#E2DDD2"
                   strokeDasharray="1 4"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="month"
-                  tick={{ fill: "#4A5268", fontSize: 10, fontFamily: "JetBrains Mono" }}
+                  tick={{ fill: "#75695B", fontSize: 10, fontFamily: "JetBrains Mono" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: "#4A5268", fontSize: 10, fontFamily: "JetBrains Mono" }}
+                  tick={{ fill: "#75695B", fontSize: 10, fontFamily: "JetBrains Mono" }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v: number) =>
@@ -140,7 +140,7 @@ export function CollectionsChart({ monthlyData, mixData }: CollectionsChartProps
                   type="monotone"
                   dataKey="amount"
                   name="Total"
-                  stroke="#E8A838"
+                  stroke="#7C611C"
                   strokeWidth={2}
                   fill="url(#goldGrad)"
                   dot={false}
@@ -149,7 +149,7 @@ export function CollectionsChart({ monthlyData, mixData }: CollectionsChartProps
                   type="monotone"
                   dataKey="savings"
                   name="Savings"
-                  stroke="#2DC98A"
+                  stroke="#1F6A40"
                   strokeWidth={1.5}
                   fill="url(#greenGrad)"
                   dot={false}

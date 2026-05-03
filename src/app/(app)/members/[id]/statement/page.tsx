@@ -4,11 +4,11 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getAvailableReportYears } from "@/lib/reports";
-import { getMember } from "@/lib/mock/queries";
+import { getMember } from "@/lib/data/queries";
 import {
   ATTENDANCE, CONTRIBUTIONS, FINES, LOAN_INSTALLMENTS,
   LOANS, MEETINGS, RECEIPTS, TODAY,
-} from "@/lib/mock/data";
+} from "@/lib/data/source";
 import { StatementClient } from "./StatementClient";
 
 export const dynamic = "force-dynamic";

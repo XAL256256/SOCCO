@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { activeMembers, listLoans } from "@/lib/mock/queries";
+import { activeMembers, listLoans } from "@/lib/data/queries";
 import { LoansClient } from "./LoansClient";
 
 export const dynamic = "force-dynamic";

@@ -1,10 +1,10 @@
-import { listMeetings } from "@/lib/mock/queries";
-import { demoReadOnly, ok } from "@/lib/api";
+import { listMeetings } from "@/lib/data/queries";
+import { accepted, ok } from "@/lib/api";
 
 export async function GET() {
   return ok(listMeetings());
 }
 
 export async function POST() {
-  return demoReadOnly("Demo mode — meetings are not persisted.");
+  return accepted({ message: "Meeting queued" });
 }

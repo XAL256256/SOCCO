@@ -22,10 +22,10 @@ type Member = {
 const STATUS_TABS = ["ALL", "ACTIVE", "INACTIVE", "SUSPENDED", "EXITED"] as const;
 
 const STATUS_MAP: Record<Member["status"], { dot: string; text: string; label: string }> = {
-  ACTIVE:    { dot: "#2DC98A", text: "text-growth",  label: "Active" },
-  INACTIVE:  { dot: "#4A5268", text: "text-dim",     label: "Inactive" },
-  SUSPENDED: { dot: "#E8A838", text: "text-gold",    label: "Suspended" },
-  EXITED:    { dot: "#E05454", text: "text-danger",  label: "Exited" },
+  ACTIVE:    { dot: "#1F6A40", text: "text-growth",  label: "Active" },
+  INACTIVE:  { dot: "#9F9686", text: "text-dim",     label: "Inactive" },
+  SUSPENDED: { dot: "#7C611C", text: "text-gold",    label: "Suspended" },
+  EXITED:    { dot: "#B91C1C", text: "text-danger",  label: "Exited" },
 };
 
 function Initials({ name }: { name: string }) {

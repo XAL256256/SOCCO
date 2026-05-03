@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { activeMembers, listMeetings, listSettings } from "@/lib/mock/queries";
+import { activeMembers, listMeetings, listSettings } from "@/lib/data/queries";
 import { ContributionForm } from "./ContributionForm";
 
 export const dynamic = "force-dynamic";

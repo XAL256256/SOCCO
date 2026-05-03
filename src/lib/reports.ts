@@ -1,5 +1,5 @@
 import { endOfMonth, format } from "date-fns";
-import { CONTRIBUTIONS, LOANS, MEMBERS, TODAY } from "./mock/data";
+import { CONTRIBUTIONS, LOANS, MEMBERS, TODAY } from "./data/source";
 
 export type MonthlyCollectionsRow = {
   no: number;
@@ -91,7 +91,6 @@ export async function getMonthlyCollections(
   };
 }
 
-// ── Matrix ────────────────────────────────────────────────────────
 export type MatrixCell = number;
 export type MatrixRow = {
   no: number;
@@ -217,7 +216,6 @@ export async function getBorrowingsMatrix(year: number): Promise<MatrixReport> {
   return { title: `NBOOG BORROWINGS ${year}`, year, monthLabels, rows, columnTotals, grandTotal };
 }
 
-// ── Loan apps by month ────────────────────────────────────────────
 export type LoanAppRow = {
   no: number;
   borrower: string;
@@ -277,7 +275,6 @@ export async function getLoanApplicationsByMonth(year: number): Promise<LoanAppG
   return groups;
 }
 
-// ── Welfare arrears ───────────────────────────────────────────────
 export type WelfareArrearsRow = {
   no: number;
   memberId: string;

@@ -1,4 +1,4 @@
-import { CONTRIBUTIONS, LOANS, MEMBERS, TODAY } from "./mock/data";
+import { CONTRIBUTIONS, LOANS, MEMBERS, TODAY } from "./data/source";
 
 export type EligibilityResult = {
   ok: boolean;

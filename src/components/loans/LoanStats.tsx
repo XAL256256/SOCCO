@@ -11,9 +11,9 @@ interface LoanStatsProps {
 
 export function LoanStats({ outstanding, pending, activeDisbursements }: LoanStatsProps) {
   const items = [
-    { label: "Outstanding Balance", value: outstanding,         prefix: "UGX", color: "#E8A838" },
-    { label: "Pending Approval",    value: pending,             prefix: "UGX", color: "#E05454" },
-    { label: "Active Disbursements",value: activeDisbursements, prefix: "",    color: "#2DC98A" },
+    { label: "Outstanding Balance", value: outstanding,         prefix: "UGX", color: "#7C611C" },
+    { label: "Pending Approval",    value: pending,             prefix: "UGX", color: "#B91C1C" },
+    { label: "Active Disbursements",value: activeDisbursements, prefix: "",    color: "#1F6A40" },
   ];
 
   return (

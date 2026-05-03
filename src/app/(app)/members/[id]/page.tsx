@@ -5,8 +5,8 @@ import { format } from "date-fns";
 import { requireUser } from "@/lib/auth";
 import { formatUGX } from "@/lib/utils";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
-import { getMember } from "@/lib/mock/queries";
-import { ATTENDANCE, CONTRIBUTIONS, MEETINGS, RECEIPTS } from "@/lib/mock/data";
+import { getMember } from "@/lib/data/queries";
+import { ATTENDANCE, CONTRIBUTIONS, MEETINGS, RECEIPTS } from "@/lib/data/source";
 
 export const dynamic = "force-dynamic";
 

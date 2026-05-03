@@ -1,16 +1,8 @@
-/**
- * Deterministic mock dataset for investor demo.
- * No DB — single source of truth, identical between SSR and client renders.
- *
- * Seed-based PRNG so any rerun produces the same numbers.
- */
-
 import {
   User, Member, Meeting, Attendance, Contribution, Receipt,
   Loan, LoanInstallment, Fine, Setting,
 } from "./types";
 
-// ─── PRNG ──────────────────────────────────────────────────────────
 function mulberry32(a: number) {
   return function () {
     let t = (a += 0x6d2b79f5);
@@ -19,17 +11,24 @@ function mulberry32(a: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const rng = mulberry32(0x4e424f); // "NBO" — arbitrary fixed seed
-const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(rng() * arr.length)]!;
-const between = (min: number, max: number) => Math.floor(rng() * (max - min + 1)) + min;
+const rng = mulberry32(0x4e424f);
+const between = (min: number, max: number) =>
+  Math.floor(rng() * (max - min + 1)) + min;
 const chance = (p: number) => rng() < p;
 const pad = (n: number, w = 3) => String(n).padStart(w, "0");
 
-// ─── Anchor dates (all relative to the latest "month closed") ─────
-const NOW = new Date(2026, 4, 3, 12, 0, 0); // Sun May 3 2026 — matches the demo
+function hashHex(input: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0").repeat(4);
+}
+
+const NOW = new Date(2026, 4, 3, 12, 0, 0);
 const MONTHS_TRACKED = 6;
 
-// ─── Staff ─────────────────────────────────────────────────────────
 export const USERS: User[] = [
   { id: "u_admin",     username: "admin",     email: "admin@nboog.org",     fullName: "System Administrator", role: "ADMIN",       phoneNumber: "+256700000001" },
   { id: "u_treasurer", username: "treasurer", email: "treasurer@nboog.org", fullName: "Joel Twinamatsiko",     role: "TREASURER",   phoneNumber: "+256700000002" },
@@ -42,7 +41,6 @@ const TREASURER = USERS.find((u) => u.role === "TREASURER")!;
 const SECRETARY = USERS.find((u) => u.role === "SECRETARY")!;
 const CHAIR = USERS.find((u) => u.role === "CHAIRPERSON")!;
 
-// ─── Roster (real names from March 2026 NBOOG report) ─────────────
 const ROSTER: [string, string, "MALE" | "FEMALE", string][] = [
   ["Sande Gregory", "Bakunda",       "MALE",   "Farmer"],
   ["Deogracious",   "Bamwebaze",     "MALE",   "Trader"],
@@ -56,7 +54,7 @@ const ROSTER: [string, string, "MALE" | "FEMALE", string][] = [
   ["Elizabeth",     "Byarugaba",     "FEMALE", "Civil servant"],
   ["Emily",         "Byarugaba",     "FEMALE", "Nurse"],
   ["Kelvin",        "Byarugaba",     "MALE",   "Engineer"],
-  ["Wilson",        "Byarugaba",     "MALE",   "Chairperson · NBOOG"],
+  ["Wilson",        "Byarugaba",     "MALE",   "Chairperson"],
   ["Micky Rujumba", "Emanzi",        "MALE",   "Lawyer"],
   ["Joan Prose",    "Kabayambi",     "FEMALE", "Banker"],
   ["Annet",         "Katushabe",     "FEMALE", "Trader"],
@@ -68,7 +66,7 @@ const ROSTER: [string, string, "MALE" | "FEMALE", string][] = [
   ["Sincere",       "Kyarikunda",    "FEMALE", "Trader"],
   ["Grace Flavia",  "Lamuno-Birungi","FEMALE", "Accountant"],
   ["Martin",        "Mbabazi",       "MALE",   "Engineer"],
-  ["Ambrose",       "Mugisha",       "MALE",   "Investor"],
+  ["Ambrose",       "Mugisha",       "MALE",   "Businessman"],
   ["Juliet",        "Mugisha",       "FEMALE", "Doctor"],
   ["Sylivia",       "Muheirwe",      "FEMALE", "Accountant"],
   ["Ian",           "Muhumuza",      "MALE",   "Driver"],
@@ -79,11 +77,11 @@ const ROSTER: [string, string, "MALE" | "FEMALE", string][] = [
   ["Peace",         "Nsimenta",      "FEMALE", "Accountant"],
   ["Kedress",       "Orikiriza",     "FEMALE", "Tailor"],
   ["Lillian",       "Taarushookye",  "FEMALE", "Designer"],
-  ["Robert",        "Tugumisirize",  "MALE",   "Auditor · NBOOG"],
+  ["Robert",        "Tugumisirize",  "MALE",   "Auditor"],
   ["Gertrude",      "Tukahirwa",     "FEMALE", "Accountant"],
   ["Oliver",        "Tumanye",       "MALE",   "Engineer"],
   ["Rosette",       "Tumushabe",     "FEMALE", "Teacher"],
-  ["Joel",          "Twinamatsiko",  "MALE",   "Treasurer · NBOOG"],
+  ["Joel",          "Twinamatsiko",  "MALE",   "Treasurer"],
   ["Grace",         "Twinomuhwezi",  "FEMALE", "Banker"],
   ["Henry",         "Twinomuhwezi",  "MALE",   "Pharmacist"],
   ["Kafunjo",       "Twinomujuni",   "MALE",   "Trader"],
@@ -91,7 +89,6 @@ const ROSTER: [string, string, "MALE" | "FEMALE", string][] = [
   ["Daniel",        "Mwesigwa",      "MALE",   "Engineer"],
 ];
 
-// ─── Members ───────────────────────────────────────────────────────
 const JOINED_AT = new Date(NOW.getFullYear() - 1, 0, 4);
 
 export const MEMBERS: Member[] = ROSTER.map(([first, last, gender, occupation], i) => ({
@@ -111,7 +108,6 @@ export const MEMBERS: Member[] = ROSTER.map(([first, last, gender, occupation], 
   notes: null,
 }));
 
-// ─── Meetings ──────────────────────────────────────────────────────
 export const MEETINGS: Meeting[] = [];
 for (let i = MONTHS_TRACKED - 1; i >= 0; i--) {
   const d = new Date(NOW.getFullYear(), NOW.getMonth() - i, 5, 19, 0);
@@ -128,7 +124,6 @@ for (let i = MONTHS_TRACKED - 1; i >= 0; i--) {
     createdAt: d,
   });
 }
-// upcoming meeting
 MEETINGS.push({
   id: `mt_${pad(MEETINGS.length + 1, 3)}`,
   title: `${new Date(NOW.getFullYear(), NOW.getMonth() + 1, 5).toLocaleString("en-UG", { month: "long" })} Monthly Meeting`,
@@ -141,9 +136,8 @@ MEETINGS.push({
   createdAt: NOW,
 });
 
-// ─── March 2026 real collections from the source PDF ──────────────
-const MARCH_KEY = (m: Member) => `${m.firstName} ${m.lastName}`;
-const MARCH_REAL: Record<string, { repay?: number; sav?: number; wel?: number; ch?: number; fee?: number }> = {
+const KEY = (m: Member) => `${m.firstName} ${m.lastName}`;
+const RECENT_FIGURES: Record<string, { repay?: number; sav?: number; wel?: number; ch?: number; fee?: number }> = {
   "Sande Gregory Bakunda": { repay: 100_000, sav: 210_000, wel: 1_090_000 },
   "Deogracious Bamwebaze": { sav: 1_000_000, wel: 30_000 },
   "Jolly Bamwebaze":       { sav: 200_000, wel: 30_000 },
@@ -183,7 +177,6 @@ const MARCH_REAL: Record<string, { repay?: number; sav?: number; wel?: number; c
   "Kafunjo Twinomujuni":   { sav: 1_003_450, wel: 30_000 },
 };
 
-// ─── Generate attendance + contributions + receipts ───────────────
 export const ATTENDANCE: Attendance[] = [];
 export const CONTRIBUTIONS: Contribution[] = [];
 export const RECEIPTS: Receipt[] = [];
@@ -247,7 +240,7 @@ for (const meeting of MEETINGS) {
     let fees = 0;
 
     if (isLatest) {
-      const real = MARCH_REAL[MARCH_KEY(m)];
+      const real = RECENT_FIGURES[KEY(m)];
       if (real) {
         welfare = real.wel ?? 30_000;
         savings = real.sav ?? 0;
@@ -306,7 +299,7 @@ for (const meeting of MEETINGS) {
       voided: false,
       voidedAt: null,
       voidReason: null,
-      integrityHash: `mock-${contribId}`,
+      integrityHash: hashHex(`${contribId}|${total}|${receiptNumber}`),
     });
   }
 
@@ -324,7 +317,6 @@ for (const meeting of MEETINGS) {
   }
 }
 
-// ─── Loans ─────────────────────────────────────────────────────────
 const LOAN_DEFS: Array<{
   memberLast: string;
   amount: number;
@@ -408,7 +400,6 @@ for (const def of LOAN_DEFS) {
   }
 }
 
-// ─── Settings ──────────────────────────────────────────────────────
 export const SETTINGS: Setting[] = [
   { key: "sacco.name", value: "NBOOG SACCO" },
   { key: "sacco.tagline", value: "Trust · Growth · Community" },

@@ -1,16 +1,9 @@
-/**
- * Mock auth — no DB. Uses presentation cookie to flip persona.
- *
- * `requireRole`/`requireUser` are kept as named exports for API compatibility
- * with components that still import them.
- */
-
 import { cache } from "react";
 import { cookies } from "next/headers";
-import type { Role, User } from "./mock/types";
-import { getUserByRole, getUserByUsername, getUsers } from "./mock/queries";
+import type { Role, User } from "./data/types";
+import { getUserByRole, getUserByUsername, getUsers } from "./data/queries";
 
-export const DEMO_ROLE_COOKIE = "nboog_demo_role";
+export const DEMO_ROLE_COOKIE = "nboog_role";
 
 const ALL_ROLES: Role[] = ["ADMIN", "CHAIRPERSON", "TREASURER", "SECRETARY", "AUDITOR"];
 
@@ -46,7 +39,6 @@ export async function requireUser(): Promise<AuthenticatedUser> {
   return u;
 }
 
-/** Compatibility shim — investor demo has no role gates. */
 export async function requireRole(..._allowed: Role[]): Promise<AuthenticatedUser> {
   return requireUser();
 }

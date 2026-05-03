@@ -4,8 +4,8 @@ import {
   getWelfareArrears,
   getWelfareMatrix,
 } from "@/lib/reports";
-import { listSettings } from "@/lib/mock/queries";
-import { TODAY } from "@/lib/mock/data";
+import { listSettings } from "@/lib/data/queries";
+import { TODAY } from "@/lib/data/source";
 import { ReportShell } from "@/components/reports/ReportShell";
 import { MatrixTable } from "@/components/reports/MatrixTable";
 import { YearPicker } from "@/components/reports/PeriodPicker";

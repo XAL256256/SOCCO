@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { listMembers } from "@/lib/mock/queries";
+import { listMembers } from "@/lib/data/queries";
 import { MembersTable } from "@/components/members/MembersTable";
 
 export const dynamic = "force-dynamic";

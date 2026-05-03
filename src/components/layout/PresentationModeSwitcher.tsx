@@ -16,7 +16,6 @@ const OPTIONS: { role: Role; label: string }[] = [
 ];
 
 type Props = {
-  /** Raw cookie value when set; null means default branch (chair / first user). */
   presentationCookie: string | null;
 };
 
@@ -25,8 +24,7 @@ export function PresentationModeSwitcher({ presentationCookie }: Props) {
   const [busy, setBusy] = useState(false);
 
   const selectValue =
-    presentationCookie &&
-    OPTIONS.some((o) => o.role === presentationCookie)
+    presentationCookie && OPTIONS.some((o) => o.role === presentationCookie)
       ? presentationCookie
       : "";
 
@@ -42,8 +40,8 @@ export function PresentationModeSwitcher({ presentationCookie }: Props) {
       if (!res.ok) throw new Error();
       toast.success(
         role === null
-          ? "Default view (chair)"
-          : `View as ${OPTIONS.find((o) => o.role === role)?.label ?? role}`
+          ? "Switched to Chairperson view"
+          : `Switched to ${OPTIONS.find((o) => o.role === role)?.label ?? role} view`
       );
       router.refresh();
     } catch {
@@ -55,25 +53,25 @@ export function PresentationModeSwitcher({ presentationCookie }: Props) {
 
   return (
     <label className="relative flex shrink-0 items-center gap-2">
-      <span className="hidden text-[10px] font-mono uppercase tracking-wider text-gray-500 xl:inline">
+      <span className="hidden text-[10px] font-mono uppercase tracking-wider text-sub xl:inline">
         View as
       </span>
       <div className="relative">
         <select
-          aria-label="Presentation mode — switch persona"
+          aria-label="Switch role view"
           disabled={busy}
           value={selectValue}
           onChange={(e) => void apply(e.target.value)}
-          className="appearance-none cursor-pointer rounded-2xl border border-gray-200 bg-white py-2 pl-3 pr-9 text-xs font-semibold text-gray-800 shadow-soft hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:opacity-50 max-w-[11rem] sm:max-w-none"
+          className="appearance-none cursor-pointer rounded-md border border-line bg-surface py-2 pl-3 pr-9 text-xs font-semibold text-txt shadow-soft hover:border-line-h focus:border-growth focus:outline-none focus:ring-2 focus:ring-growth/15 disabled:opacity-50 max-w-[11rem] sm:max-w-none"
         >
-          <option value="">Default (chair)</option>
-          {OPTIONS.map((o) => (
+          <option value="">Chairperson</option>
+          {OPTIONS.filter((o) => o.role !== "CHAIRPERSON").map((o) => (
             <option key={o.role} value={o.role}>
               {o.label}
             </option>
           ))}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-dim" />
       </div>
     </label>
   );

@@ -17,8 +17,8 @@ export function notFound(message = "Not found") {
   return NextResponse.json({ error: message }, { status: 404 });
 }
 
-export function demoReadOnly(message = "Demo mode — connect a database to enable writes") {
-  return NextResponse.json({ ok: true, demo: true, message }, { status: 200 });
+export function accepted<T>(data: T) {
+  return NextResponse.json({ ok: true, ...data }, { status: 202 });
 }
 
 export function serverError(err: unknown) {

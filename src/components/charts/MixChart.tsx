@@ -20,12 +20,13 @@ export function MixChart({ data }: { data: Datum[] }) {
         <PieChart>
           <Tooltip
             contentStyle={{
-              backgroundColor: "#1c1917",
-              border: "none",
-              borderRadius: "12px",
-              fontFamily: "var(--font-body)",
+              backgroundColor: "#FFFFFF",
+              border: "1px solid #C7BFAE",
+              borderRadius: "8px",
+              fontFamily: "var(--font-dm)",
               padding: "10px 14px",
-              color: "#fff",
+              color: "#14110E",
+              boxShadow: "0 8px 24px -8px rgba(20,17,14,0.12)",
             }}
             formatter={(v: number) => formatUGX(v)}
           />

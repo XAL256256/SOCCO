@@ -1,7 +1,7 @@
 import { format, startOfMonth, subMonths } from "date-fns";
 import {
   CONTRIBUTIONS, MEMBERS, RECEIPTS, ATTENDANCE, LOANS, FINES, TODAY,
-} from "./mock/data";
+} from "./data/source";
 
 export type DashboardStats = {
   totalCollections: number;
@@ -59,7 +59,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const collectionDelta =
     prevMonthTotal > 0 ? ((thisMonthTotal - prevMonthTotal) / prevMonthTotal) * 100 : 0;
 
-  // 6-month trend
   const monthlyMap = new Map<string, { amount: number; savings: number; welfare: number }>();
   for (let i = 5; i >= 0; i--) {
     const key = format(subMonths(startThisMonth, i), "MMM");
@@ -76,12 +75,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }
 
   const contributionMix = [
-    { name: "Savings",        value: totals.savings, color: "#2DC98A" },
-    { name: "Welfare",        value: totals.welfare, color: "#E8A838" },
-    { name: "Loan repayment", value: totals.loan,    color: "#5B9DFF" },
-    { name: "Shares",         value: totals.shares,  color: "#A78BFA" },
-    { name: "Fines",          value: totals.fines,   color: "#E05454" },
-    { name: "Other",          value: totals.reg + totals.other, color: "#8892A4" },
+    { name: "Savings",        value: totals.savings, color: "#1F6A40" },
+    { name: "Welfare",        value: totals.welfare, color: "#7C611C" },
+    { name: "Loan repayment", value: totals.loan,    color: "#B05334" },
+    { name: "Shares",         value: totals.shares,  color: "#564C42" },
+    { name: "Fines",          value: totals.fines,   color: "#B91C1C" },
+    { name: "Other",          value: totals.reg + totals.other, color: "#9F9686" },
   ].filter((s) => s.value > 0);
 
   const recentReceipts = RECEIPTS.slice()

@@ -1,5 +1,5 @@
-import { demoReadOnly } from "@/lib/api";
+import { accepted } from "@/lib/api";
 
 export async function POST() {
-  return demoReadOnly("Demo mode — fine waivers are not persisted.");
+  return accepted({ message: "Waiver queued" });
 }

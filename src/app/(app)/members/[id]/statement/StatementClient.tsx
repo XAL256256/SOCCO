@@ -7,8 +7,6 @@ import { format } from "date-fns";
 import { downloadCsv } from "@/lib/csv";
 import { formatUGX } from "@/lib/utils";
 
-/* ── Types ────────────────────────────────────────────────── */
-
 type Receipt = {
   id: string;
   receiptNumber: string;
@@ -85,15 +83,10 @@ type Props = {
   loans: Loan[];
 };
 
-/* ── Helpers ─────────────────────────────────────────────── */
-
-/** Formats a number with comma thousands-separator, no currency prefix — matches original NBOOG report style */
 function n(v: number): string {
   if (v === 0) return "-";
   return v.toLocaleString("en-UG");
 }
-
-/* ── Component ───────────────────────────────────────────── */
 
 export function StatementClient({
   member,
@@ -114,7 +107,6 @@ export function StatementClient({
     router.push(`${pathname}?${sp.toString()}`);
   };
 
-  /* Running balances */
   let savingsRunning = 0;
   let welfareRunning = 0;
   const ledger = contributions.map((c, idx) => {
@@ -146,8 +138,6 @@ export function StatementClient({
   const absentCount = attendance.filter((a) => a.status === "ABSENT").length;
 
   const memberFullName = `${member.lastName} ${member.firstName}`;
-
-  /* ── CSV exports ─────────────────────────────────────────── */
 
   const exportStatementCsv = () => {
     const generated = format(new Date(), "d-MMM-yy  h:mm a");
@@ -255,11 +245,8 @@ export function StatementClient({
     );
   };
 
-  /* ── Render ──────────────────────────────────────────────── */
-
   return (
     <>
-      {/* ── Toolbar ──────────────────────────────────────────── */}
       <div className="no-print flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-primary-600">
@@ -305,19 +292,15 @@ export function StatementClient({
         </div>
       </div>
 
-      {/* ── Document card ────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="overflow-hidden rounded-[28px] bg-white shadow-elevated"
       >
-        {/* ── Branded document header ─────────────────────── */}
         <div className="relative bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-7 py-6 text-white print:from-gray-900 print:via-gray-800 print:to-gray-900">
-          {/* Subtle terracotta accent stripe */}
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary-500 via-accent-400 to-secondary-500" />
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            {/* Left — org identity */}
             <div>
               <p className="font-display text-xl font-bold tracking-tight text-white">
                 NBOOG SACCO
@@ -329,7 +312,6 @@ export function StatementClient({
                 Member Statement · {year}
               </p>
             </div>
-            {/* Right — member info */}
             <div className="sm:text-right">
               <p className="font-display text-lg font-bold tracking-tight">
                 {member.lastName}, {member.firstName}
@@ -345,7 +327,6 @@ export function StatementClient({
             </div>
           </div>
 
-          {/* KPI strip inside header */}
           <div className="mt-5 grid grid-cols-2 gap-2 border-t border-white/10 pt-4 sm:grid-cols-4">
             <HeaderKpi label="Total contributed" value={formatUGX(totals.contributed)} />
             <HeaderKpi label="Savings balance" value={formatUGX(totals.savings)} accent="secondary" />
@@ -355,7 +336,6 @@ export function StatementClient({
         </div>
 
         <div className="p-5 sm:p-7">
-          {/* ── CONTRIBUTION LEDGER ─────────────────────────── */}
           <DocSection title={`CONTRIBUTION LEDGER · ${year}`}>
             <div className="overflow-x-auto rounded-2xl border border-gray-100">
               <table className="w-full text-sm">
@@ -451,7 +431,6 @@ export function StatementClient({
             </div>
           </DocSection>
 
-          {/* ── RECEIPTS ──────────────────────────────────────── */}
           {ledger.filter((c) => c.receipt).length > 0 && (
             <DocSection title={`RECEIPTS REGISTER · ${year}`}>
               <div className="overflow-x-auto rounded-2xl border border-gray-100">
@@ -508,7 +487,6 @@ export function StatementClient({
             </DocSection>
           )}
 
-          {/* ── ATTENDANCE ──────────────────────────────────── */}
           <DocSection title={`ATTENDANCE · ${year}`}>
             <div className="mb-4 grid grid-cols-3 gap-3">
               <AttTile label="Present" value={presentCount} color="secondary" />
@@ -566,7 +544,6 @@ export function StatementClient({
             )}
           </DocSection>
 
-          {/* ── FINES ─────────────────────────────────────────── */}
           {fines.length > 0 && (
             <DocSection title={`FINES · ${year}`}>
               <div className="overflow-x-auto rounded-2xl border border-gray-100">
@@ -619,13 +596,11 @@ export function StatementClient({
             </DocSection>
           )}
 
-          {/* ── LOANS ─────────────────────────────────────────── */}
           {loans.length > 0 && (
             <DocSection title="LOANS (ALL TIME)">
               <div className="space-y-3">
                 {loans.map((l) => (
                   <div key={l.id} className="overflow-hidden rounded-2xl border border-gray-200">
-                    {/* Loan header band */}
                     <div
                       className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 ${
                         ["DISBURSED", "ACTIVE"].includes(l.status)
@@ -668,7 +643,6 @@ export function StatementClient({
                       </div>
                     </div>
 
-                    {/* Repayment schedule */}
                     {l.schedule.length > 0 && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
@@ -751,7 +725,6 @@ export function StatementClient({
             </DocSection>
           )}
 
-          {/* Document footer */}
           <div className="mt-10 border-t border-gray-100 pt-5 text-center">
             <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400">
               NBOOG SACCO · {member.memberNumber} ·{" "}
@@ -772,15 +745,12 @@ export function StatementClient({
           aside, header, nav { display: none !important; }
           main { padding: 0 !important; }
           body { background: white !important; }
-          /* Preserve dark table headers in print */
           thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>
     </>
   );
 }
-
-/* ── Sub-components ──────────────────────────────────────── */
 
 function DocSection({
   title,

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { listReceipts } from "@/lib/mock/queries";
+import { listReceipts } from "@/lib/data/queries";
 import { ok } from "@/lib/api";
 
 export async function GET(req: NextRequest) {

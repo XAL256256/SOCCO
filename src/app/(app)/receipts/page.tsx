@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { listReceipts } from "@/lib/mock/queries";
+import { listReceipts } from "@/lib/data/queries";
 import { ReceiptsClient } from "./ReceiptsClient";
 
 export const dynamic = "force-dynamic";

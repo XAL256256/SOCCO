@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { requireUser } from "@/lib/auth";
-import { activeMembers, getMeeting, getMeetingAttendance } from "@/lib/mock/queries";
-import { CONTRIBUTIONS } from "@/lib/mock/data";
+import { activeMembers, getMeeting, getMeetingAttendance } from "@/lib/data/queries";
+import { CONTRIBUTIONS } from "@/lib/data/source";
 import { MeetingDetailClient } from "./MeetingDetailClient";
 
 export const dynamic = "force-dynamic";

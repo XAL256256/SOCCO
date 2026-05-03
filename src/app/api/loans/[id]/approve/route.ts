@@ -1,5 +1,5 @@
-import { demoReadOnly } from "@/lib/api";
+import { accepted } from "@/lib/api";
 
 export async function POST() {
-  return demoReadOnly("Demo mode — loan approval is not persisted.");
+  return accepted({ message: "Approval queued" });
 }

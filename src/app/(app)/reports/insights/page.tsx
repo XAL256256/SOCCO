@@ -1,7 +1,7 @@
 import { format, subMonths, startOfMonth } from "date-fns";
 import { requireUser } from "@/lib/auth";
-import { activeMembers } from "@/lib/mock/queries";
-import { CONTRIBUTIONS, TODAY } from "@/lib/mock/data";
+import { activeMembers } from "@/lib/data/queries";
+import { CONTRIBUTIONS, TODAY } from "@/lib/data/source";
 import { ContributionHeatmap } from "@/components/reports/ContributionHeatmap";
 import { CollectionsChart } from "@/components/charts/CollectionsChart";
 import { ReportShell } from "@/components/reports/ReportShell";

@@ -1,7 +1,7 @@
 import { isFuture, isToday } from "date-fns";
 import { requireUser } from "@/lib/auth";
-import { listMeetings } from "@/lib/mock/queries";
-import { CONTRIBUTIONS } from "@/lib/mock/data";
+import { listMeetings } from "@/lib/data/queries";
+import { CONTRIBUTIONS } from "@/lib/data/source";
 import { MeetingsClient } from "./MeetingsClient";
 
 export const dynamic = "force-dynamic";

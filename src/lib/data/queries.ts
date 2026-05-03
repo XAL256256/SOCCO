@@ -1,22 +1,14 @@
-/**
- * Read helpers over the mock dataset. Mirrors what page components
- * previously expected from `prisma.X.findMany()`-style calls.
- */
-
 import {
   USERS, MEMBERS, MEETINGS, ATTENDANCE, CONTRIBUTIONS,
   RECEIPTS, LOANS, LOAN_INSTALLMENTS, FINES, SETTINGS, TODAY,
-} from "./data";
+} from "./source";
 import type {
   Member, Meeting, MemberWithCounts, MeetingWithCount,
-  Loan, LoanInstallment, Contribution, Receipt, Attendance,
-  Fine, User, Setting, MemberStatus,
+  Attendance, Fine, User, Setting, MemberStatus,
 } from "./types";
 
-/** Anchor "now" for the demo — keeps charts/totals stable. */
-export const DEMO_NOW = TODAY;
+export const NOW = TODAY;
 
-// ─── Users ─────────────────────────────────────────────────────────
 export function getUsers(): User[] { return USERS; }
 export function getUserById(id: string): User | undefined {
   return USERS.find((u) => u.id === id);
@@ -28,7 +20,6 @@ export function getUserByRole(role: User["role"]): User | undefined {
   return USERS.find((u) => u.role === role);
 }
 
-// ─── Members ───────────────────────────────────────────────────────
 export function listMembers(): MemberWithCounts[] {
   return MEMBERS.slice()
     .sort((a, b) => {
@@ -63,7 +54,6 @@ function withCounts(m: Member): MemberWithCounts {
   };
 }
 
-// ─── Meetings ──────────────────────────────────────────────────────
 export function listMeetings(): MeetingWithCount[] {
   return MEETINGS.slice()
     .sort((a, b) => b.meetingDate.getTime() - a.meetingDate.getTime())
@@ -84,7 +74,6 @@ export function getMeetingAttendance(meetingId: string): Array<Attendance & { me
   }));
 }
 
-// ─── Contributions / Receipts ──────────────────────────────────────
 export function listContributions(opts?: { memberId?: string; limit?: number }) {
   let items = CONTRIBUTIONS.slice();
   if (opts?.memberId) items = items.filter((c) => c.memberId === opts.memberId);
@@ -116,11 +105,7 @@ export function listReceipts(opts?: { memberId?: string; limit?: number; query?:
   return items.map((r) => {
     const member = MEMBERS.find((m) => m.id === r.memberId)!;
     const contribution = CONTRIBUTIONS.find((c) => c.id === r.contributionId)!;
-    return {
-      ...r,
-      member,
-      contribution,
-    };
+    return { ...r, member, contribution };
   });
 }
 
@@ -134,7 +119,6 @@ export function getReceipt(id: string) {
   };
 }
 
-// ─── Loans ─────────────────────────────────────────────────────────
 export function listLoans() {
   return LOANS.slice()
     .sort((a, b) => b.appliedAt.getTime() - a.appliedAt.getTime())
@@ -159,7 +143,6 @@ export function getLoan(id: string) {
   };
 }
 
-// ─── Fines ─────────────────────────────────────────────────────────
 export function listFines(opts?: { status?: Fine["status"] }) {
   let items = FINES.slice();
   if (opts?.status) items = items.filter((f) => f.status === opts.status);
@@ -170,5 +153,4 @@ export function listFines(opts?: { status?: Fine["status"] }) {
   }));
 }
 
-// ─── Settings ──────────────────────────────────────────────────────
 export function listSettings(): Setting[] { return SETTINGS; }

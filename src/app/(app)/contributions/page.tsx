@@ -2,7 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowUpRight, HandCoins } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { listContributions } from "@/lib/mock/queries";
+import { listContributions } from "@/lib/data/queries";
 import { formatUGX } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
