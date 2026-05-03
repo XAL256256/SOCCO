@@ -141,7 +141,8 @@ async function main() {
     prisma.setting.deleteMany(),
   ]);
 
-  const defaultPassword = "Nboog!2026Pass";
+  // One password for all demo staff — change after go-live
+  const defaultPassword = "socco";
   const hash = await bcrypt.hash(defaultPassword, 12);
 
   const users = await prisma.user.createManyAndReturn({

@@ -218,7 +218,7 @@ function LoginInner() {
                   leadingIcon={<User className="h-4 w-4" />}
                   error={errors.identifier}
                   disabled={loading}
-                  placeholder="treasurer or you@nboog.org"
+                  placeholder="chair"
                 />
                 <Input
                   label="Password"

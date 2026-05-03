@@ -1,24 +1,27 @@
+import { createHash } from "crypto";
 import { z } from "zod";
+
+/** Stable JWT key when JWT_SECRET is unset — tied to DATABASE_URL (Neon/Vercel friendly). */
+function jwtSecretFromDbUrl(databaseUrl: string): string {
+  return createHash("sha256")
+    .update(`${databaseUrl}::nboog-jwt-v1`)
+    .digest("hex");
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  JWT_SECRET: z
-    .string()
-    .min(32, "JWT_SECRET must be at least 32 chars. Generate with: openssl rand -hex 64"),
+  /** Optional: set in Vercel for extra isolation. If omitted, derived from DATABASE_URL. */
+  JWT_SECRET: z.string().optional(),
   SESSION_COOKIE_NAME: z.string().default("nboog_session"),
   APP_NAME: z.string().default("NBOOG SACCO"),
-  APP_URL: z.string().url().default("http://localhost:3000"),
+  APP_URL: z.string().default("http://localhost:3000"),
 });
 
-type Env = z.infer<typeof envSchema>;
+export type Env = z.infer<typeof envSchema> & { JWT_SECRET: string };
 
 /**
- * During `next build` (NEXT_PHASE=phase-production-build) Vercel evaluates
- * every module to collect page data. Real runtime secrets are NOT available
- * at this point — they are injected only when the serverless function is
- * actually invoked. We therefore skip hard validation at build time and
- * validate eagerly only at runtime (dev server or live requests).
+ * During `next build`, secrets are not injected — skip strict validation.
  */
 const isBuildTime =
   process.env.NEXT_PHASE === "phase-production-build" ||
@@ -26,22 +29,19 @@ const isBuildTime =
 
 function getEnv(): Env {
   if (isBuildTime) {
-    // Return a proxy so code that reads env at module-load level gets safe
-    // placeholder values and doesn't crash during the build step.
     return new Proxy({} as Env, {
       get(_target, prop: string) {
-        // Provide safe defaults for the handful of values touched at load time
+        const db = process.env.DATABASE_URL ?? "";
         const defaults: Record<string, string> = {
           NODE_ENV: process.env.NODE_ENV ?? "production",
           SESSION_COOKIE_NAME: process.env.SESSION_COOKIE_NAME ?? "nboog_session",
           APP_NAME: process.env.APP_NAME ?? "NBOOG SACCO",
           APP_URL: process.env.APP_URL ?? "http://localhost:3000",
-          // Placeholder secret — 32 chars minimum so any early encode() call
-          // gets a valid buffer; replaced by the real value at request time.
+          DATABASE_URL: db,
           JWT_SECRET:
-            process.env.JWT_SECRET ??
-            "build-time-placeholder-secret-32chars!!",
-          DATABASE_URL: process.env.DATABASE_URL ?? "",
+            process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32
+              ? process.env.JWT_SECRET
+              : jwtSecretFromDbUrl(db || "build-placeholder-db-url"),
         };
         return defaults[prop] ?? "";
       },
@@ -51,12 +51,18 @@ function getEnv(): Env {
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {
     console.error(
-      "❌ Invalid environment variables:",
+      "Invalid environment variables:",
       parsed.error.flatten().fieldErrors
     );
     throw new Error("Invalid environment configuration");
   }
-  return parsed.data;
+  const base = parsed.data;
+  const JWT_SECRET =
+    base.JWT_SECRET && base.JWT_SECRET.length >= 32
+      ? base.JWT_SECRET
+      : jwtSecretFromDbUrl(base.DATABASE_URL);
+
+  return { ...base, JWT_SECRET };
 }
 
 export const env = getEnv();
