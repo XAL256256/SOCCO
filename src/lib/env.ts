@@ -1,3 +1,4 @@
+import "./resolve-database-url";
 import { z } from "zod";
 
 const envSchema = z.object({

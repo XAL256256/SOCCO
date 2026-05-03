@@ -1,3 +1,5 @@
+import "./resolve-database-url";
+
 /**
  * One HS256 signing key for middleware (Edge) + route handlers (Node).
  * Use explicit JWT_SECRET in Vercel if set (≥32 chars); otherwise derive

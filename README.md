@@ -20,10 +20,13 @@ npm run dev
 
 ## Deploy on Vercel (minimal clicks)
 
-**I can’t log into Vercel or Neon for you** — someone with access must connect storage once. After that, schema sync runs **automatically on every Vercel build** (`prisma db push` when `VERCEL=1`).
+**Connect Postgres once** in Vercel → **Storage** → **Create** → **Postgres**.  
+Vercel usually injects **`POSTGRES_PRISMA_URL`** (not `DATABASE_URL`). This app maps that automatically for Prisma + JWT.
 
-1. In [vercel.com](https://vercel.com): open your project → **Storage** → **Create Database** → choose **Postgres** (Neon).  
-   Vercel attaches **`DATABASE_URL`** to the project — no copy/paste from another site.
+On each Vercel build we run **`prisma db push`** when any of these exist: `DATABASE_URL`, `POSTGRES_PRISMA_URL`, `POSTGRES_URL`.  
+If none are visible at **build** time, the build still succeeds and we skip push — then either enable those variables for **Build** in Vercel, or run `npm run db:push` locally once.
+
+Set **`PRISMA_PUSH_ON_BUILD=0`** to never run push during build.
 2. Redeploy (or push to GitHub). The build creates tables.
 3. **Seed once** (still required — it inserts users; we don’t run it every deploy or it would wipe data):
 
