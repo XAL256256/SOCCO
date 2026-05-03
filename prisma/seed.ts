@@ -58,6 +58,28 @@ const ROSTER = [
   ["Kafunjo", "Twinomujuni", "+256701000043", "MALE"],
 ] as const;
 
+/** Synthetic demo members (+42 → satisfies “≥40 mock entries”) beyond the real roster. */
+function syntheticMockRoster(count: number) {
+  const firstNames = [
+    "Patricia", "Simon", "Bruno", "Caroline", "Denis", "Eva", "Frank", "Gloria",
+    "Hassan", "Irene", "James", "Kate",
+  ];
+  const out: [string, string, string, "MALE" | "FEMALE"][] = [];
+  for (let i = 0; i < count; i++) {
+    const seq = ROSTER.length + i + 1;
+    const fn = firstNames[i % firstNames.length]!;
+    const ln = `Mockfield-${String(seq).padStart(2, "0")}`;
+    const phone = `+256702${String(180000 + seq).padStart(6, "0")}`;
+    const gender: "MALE" | "FEMALE" = i % 2 === 0 ? "MALE" : "FEMALE";
+    out.push([fn, ln, phone, gender]);
+  }
+  return out;
+}
+
+const MOCK_EXTRA_COUNT = 42;
+const MOCK_EXTRA_ROSTER = syntheticMockRoster(MOCK_EXTRA_COUNT);
+const FULL_ROSTER = [...ROSTER, ...MOCK_EXTRA_ROSTER];
+
 // Realistic March 2026 collections (from the actual report) - slice subset
 const MARCH_COLLECTIONS: Record<string, { repay?: number; sav?: number; wel?: number; ch?: number; fee?: number }> = {
   "Bakunda": { repay: 100_000, sav: 210_000, wel: 1_090_000 },
@@ -123,7 +145,9 @@ function receiptNumberFor(d: Date, seq: number) {
 }
 
 async function main() {
-  console.log("🌱 Seeding NBOOG SACCO database with real roster...");
+  console.log(
+    `🌱 Seeding NBOOG SACCO database (${ROSTER.length} roster + ${MOCK_EXTRA_COUNT} synthetic demo members = ${FULL_ROSTER.length} total)...`
+  );
 
   await prisma.$transaction([
     prisma.loanInstallment.deleteMany(),
@@ -163,7 +187,7 @@ async function main() {
   const today = new Date();
   const joinDate = new Date(today.getFullYear() - 1, 0, 4);
   const members = await prisma.member.createManyAndReturn({
-    data: ROSTER.map(([first, last, phone, gender], i) => ({
+    data: FULL_ROSTER.map(([first, last, phone, gender], i) => ({
       memberNumber: `NBG-${pad(i + 1, 4)}`,
       firstName: first,
       lastName: last,
